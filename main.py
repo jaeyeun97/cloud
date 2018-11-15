@@ -131,7 +131,7 @@ class Shibal(object):
             elif prompt == 1:
                 print()
                 for k, v in self.default_options.items():
-                    print("[{}]: {}".format(readable_name[k], v))
+                    print("{}: {}".format(readable_name[k], v))
                 for k, v in self.creation_options.items():
                     print("{}: {}".format(readable_name[k], v))
             elif prompt == 11:

@@ -1,19 +1,32 @@
+# -- coding: utf-8 --
+
 import re
 import math
 from pyspark import SparkContext
 from pyspark.sql import SQLContext
 
 
-file = "sample-d"
+file = "sample-f"
 sc = SparkContext("local", "sibal")
 sqlc = SQLContext(sc)
 
-#Words
-filtered = sc.textFile(file).flatMap(lambda x:filter(None, re.split("[, .;:?!\"()\[\]{}\-_]+", x))).filter(lambda x:x.isalpha()).filter(lambda x: True if u"U+00A3" not in x else False)
+def alphabetical(x):
+        alphabets = "abcdefghijklmnopqrstuvwxyz"
+        bool = True
+        for c in x.lower():
+                if(c not in alphabets):
+                        bool = False
+        return bool
 
-allWords = filtered.map(lambda x:("total", 1)) \
+#Words
+filtered = sc.textFile(file).flatMap(lambda x:filter(None, re.split("[, .;:?!\"()\[\]{}\-_]+", x))).filter(lambda x:x.isalpha()).filter(lambda x: alphabetical(x))
+
+allWordsTemp = filtered.map(lambda x:("total", 1)) \
                 .reduceByKey(lambda a,b:a+b) \
-                .sortByKey().collect()
+                .sortByKey()
+
+allWordsDict = allWordsTemp.collectAsMap()
+allWords = allWordsTemp.collect()
 
 
 sqlc.createDataFrame(allWords, ["AllTotal", "count"]).show()
@@ -35,10 +48,18 @@ wordCount = filtered.map(lambda x:(x.lower(),1)) \
                 .sortByKey().collect()
 sqlc.createDataFrame(wordCount, ["count", "word"]).show()
 
+aCount = allWordsDict["total"]
 dCount = distinctWordsDict["distinctTotal"]
 popular = math.ceil(dCount * 0.05)
 rare = math.floor(dCount * 0.95)
 common_l = math.floor(dCount * 0.475)
 common_u = math.ceil(dCount * 0.525)
+
+print(aCount)
+print(dCount)
+print(popular)
+print(common_l)
+print(common_u)
+print(rare)
 
 #Letters

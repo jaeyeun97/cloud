@@ -12,17 +12,19 @@ file = "test"
 
 
 
+
+
 def alphabetical(x):
-	if(x.isalpha()):
-		return True
-	else:
-		return False
+	alphabets = "abcdefghijklmnopqrstuvwxyz"
+	bool = True
+	for c in x.lower():
+		if(c not in alphabets):
+			bool = False
+	return bool
+	
 	
 print(re.split("[, .;:?!\"()\[\]{}\-_]+", text))
 
-x = "asdf£asdf";
-if(x.isalpha):
-	print("y")
-else:
-	print("n")
+x = "asdf@%&*/\ ^'#><~=+asdf"
+print(alphabetical(x))
 #Letters

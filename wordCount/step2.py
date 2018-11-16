@@ -1,20 +1,18 @@
 import re
 import math
-from pyspark import SparkContext
+from pyspark import SparkContext, SparkConf
 from pyspark.sql import SQLContext
 
-
-file = "sample-d"
-sc = SparkContext("local", "sibal")
+# conf = SparkConf()
+sc = SparkContext("local", "wordCount")
 sqlc = SQLContext(sc)
 
 #Words
-filtered = sc.textFile(file).flatMap(lambda x:filter(None, re.split("[, .;:?!\"()\[\]{}\-_]+", x))).filter(lambda x:x.isalpha()).filter(lambda x: True if u"U+00A3" not in x else False)
+filtered = sc.textFile("data/sample-a.txt").flatMap(lambda x:filter(None, re.split("[, .;:?!\"()\[\]{}\-_]+", x))).filter(lambda x:x.isalpha()).filter(lambda x: True if u"U+00A3" not in x else False)
 
 allWords = filtered.map(lambda x:("total", 1)) \
                 .reduceByKey(lambda a,b:a+b) \
                 .sortByKey().collect()
-
 
 sqlc.createDataFrame(allWords, ["AllTotal", "count"]).show()
 

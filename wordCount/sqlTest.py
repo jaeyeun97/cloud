@@ -7,6 +7,7 @@ cnx= {'host': 'group2dbinstance.cxezedslevku.eu-west-2.rds.amazonaws.com',
 
 try:
 	db = mysql.connector.connect(host = cnx['host'], database = cnx['db'], user = cnx['username'], password = cnx['password'])
+	cursor = db.cursor()
 except mysql.connector.Error as err:
 	print(err)
 else:
@@ -27,8 +28,6 @@ INSERT['letter'] = ("INSERT INTO letters (frequency, letter"
 			"VALUES (3, t), (4, z)")
 
 
-cursor = db.cursor()
-
 try:
 	cursor.execute(TABLES['words'])
 	cursor.execute(TABLES['letters'])
@@ -36,8 +35,8 @@ try:
 	cursor.execute(INSERT['letter'])
 except mysql.connector.Error as err2:
 	print(err2)
-else
-	print("jot sibal')
+else:
+	print("jot sibal")
 
 cursor.close()
 db.close()

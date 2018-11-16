@@ -2,8 +2,7 @@ import re
 from pyspark import SparkContext
 from pyspark.sql import SQLContext
 
-text = "Hey, you - what are \"you\" doing here!? test1-test2_test3"
-file = "test"
+file = "sample-a"
 sc = SparkContext("local", "sibal")
 sqlc = SQLContext(sc)
 
@@ -16,9 +15,14 @@ allWords = filtered.map(lambda x:("total", 1)) \
 
 sqlc.createDataFrame(allWords, ["AllTotal", "count"]).show()
 
-distinctWords = filtered.map(lambda x:(x.lower(),1)) \
+distinctWordsTemp = filtered.map(lambda x:(x.lower(),1)) \
                 .reduceByKey(lambda a,b:1) \
-                .sortByKey().collect()
+                .map(lambda (a,b):("distinctTotal", b)) \
+                .reduceByKey(lambda a,b:a+b) \
+                .sortByKey()
+
+distinctWordsDict = distinctWordsTemp.collectAsMap()
+distinctWords = distinctWordsTemp.collect()
 
 sqlc.createDataFrame(distinctWords, ["DistinctTotal", "count"]).show()
 
@@ -28,4 +32,8 @@ wordCount = filtered.map(lambda x:(x.lower(),1)) \
                 .sortByKey().collect()
 sqlc.createDataFrame(wordCount, ["count", "word"]).show()
 
-#Letters
+dCount = distinctWordsDict["distinctTotal"]
+popular = Math.ceil(dCount * 0.05)
+rare = Math.floor(dCount * 0.95)
+common_l = Math.floor(dCount * 0.475)
+common_u = Math.ceil(dCount * 0.525)

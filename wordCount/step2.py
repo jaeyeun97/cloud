@@ -20,9 +20,20 @@ allWords = filtered.map(lambda x:("total", 1)) \
 
 sqlc.createDataFrame(allWords, ["AllTotal", "count"]).show()
 
+<<<<<<< HEAD
 distinctWords = filtered.map(lambda x:(x.lower(),1)) \
                 .reduceByKey(lambda p:1) \
                 .sortByKey().collect()
+=======
+distinctWordsTemp = filtered.map(lambda x:(x.lower(),1)) \
+                .reduceByKey(lambda a,b:1) \
+                .map(lambda (a,b):("distinctTotal", b)) \
+                .reduceByKey(lambda a,b:a+b) \
+                .sortByKey()
+
+distinctWordsDict = distinctWordsTemp.collectAsMap()
+distinctWords = distinctWordsTemp.collect()
+>>>>>>> 8d1713917a5d5cc4c2daa427edd46d03916390fa
 
 sqlc.createDataFrame(distinctWords, ["DistinctTotal", "count"]).show()
 
@@ -32,4 +43,12 @@ wordCount = filtered.map(lambda x:(x.lower(),1)) \
                 .sortByKey().collect()
 sqlc.createDataFrame(wordCount, ["count", "word"]).show()
 
+<<<<<<< HEAD
 #Letters
+=======
+dCount = distinctWordsDict["distinctTotal"]
+popular = Math.ceil(dCount * 0.05)
+rare = Math.floor(dCount * 0.95)
+common_l = Math.floor(dCount * 0.475)
+common_u = Math.ceil(dCount * 0.525)
+>>>>>>> 8d1713917a5d5cc4c2daa427edd46d03916390fa

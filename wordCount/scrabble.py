@@ -19,5 +19,10 @@ def alphabetical(x):
 		return False
 	
 print(re.split("[, .;:?!\"()\[\]{}\-_]+", text))
-	
+
+x = "asdf£asdf";
+if(x.isalpha):
+	print("y")
+else:
+	print("n")
 #Letters

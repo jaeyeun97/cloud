@@ -8,8 +8,7 @@ sc = SparkContext("local", "sibal")
 sqlc = SQLContext(sc)
 
 #Words
-filtered = sc.textFile(file).flatMap(lambda x:filter(None, re.split("[, .;:?!\"()\[\]{}\-_]+", x)))
-                .filter(lambda x:x.isalpha())
+filtered = sc.textFile(file).flatMap(lambda x:filter(None, re.split("[, .;:?!\"()\[\]{}\-_]+", x))).filter(lambda x:x.isalpha())
 
 allWords = filtered.map(lambda x:("total", 1)) \
                 .reduceByKey(lambda a,b:a+b) \

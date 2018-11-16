@@ -18,6 +18,6 @@ def alphabetical(x):
 	else:
 		return False
 	
-print(list(filter(None, re.split("[, .;:?!\"()\[\]{}\-_]+", text))))
+print(re.split("[, .;:?!\"()\[\]{}\-_]+", text))
 	
 #Letters

@@ -53,7 +53,6 @@ common_l = math.floor(dCount * 0.475)
 common_u = math.ceil(dCount * 0.525)
 
 #Letters
-=======
 print(aCount)
 print(dCount)
 print(popular)

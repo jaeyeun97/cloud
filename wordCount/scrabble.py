@@ -15,15 +15,15 @@ file = "test"
 
 
 def alphabetical(x):
-	alphabets = "abcdefghijklmnopqrstuvwxyz"
-	bool = True
-	for c in x.lower():
-		if(c not in alphabets):
-			bool = False
-	return bool
+        alphabets = "abcdefghijklmnopqrstuvwxyz"
+        bool = True
+        for c in x.lower():
+                if(c not in alphabets):
+                        bool = False
+        return bool
 	
 	
-print(re.split("[, .;:?!\"()\[\]{}\-_]+", text))
+print(filter(None, re.split("[, .;:?!\"()\[\]{}\-_]+", text)))
 
 x = "asdf@%&*/\ ^'#><~=+asdf"
 print(alphabetical(x))

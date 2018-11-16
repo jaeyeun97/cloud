@@ -7,8 +7,17 @@ file = "test"
 #sc = SparkContext("local", "TestWordCount")
 
 #Words
-#out = sc.textFile(file).flatMap(lambda x:re.split("[, .;:?!\"()\[\]{}\-_]+", x)).map(lambda x:(x,1)).reduceByKey(lambda a,b:a+b).map(lambda (a,b):(b,a)).sortByKey().collect()
+#out = sc.textFile(file).flatMap(lambda x:re.split("[, .;:?!\"()\[\]{}\-_]+", x)).filter(lambda x:x.isalpha()).map(lambda x:(x.lower,1)).reduceByKey(lambda a,b:a+b).map(lambda (a,b):(b,a)).sortByKey().collect()
 #SQLContext(sc).createDataFrame(out, ["count", "word"]).show()
 
-print(re.split("[, .;:?!\"()\[\]{}\-_]+", text))
+
+
+def alphabetical(x):
+	if(x.isalpha()):
+		return True
+	else:
+		return False
+	
+print(list(filter(None, re.split("[, .;:?!\"()\[\]{}\-_]+", text))))
+	
 #Letters

@@ -1,9 +1,21 @@
+# -- coding: utf-8 -
 import re
 #from pyspark import SparkContext
 #from pyspark.sql import SQLContext
 
-text = "Hey, you - what are \"you\" doing here!? test1-test2_test3(test4)[test5]{test6}"
-file = "test"
+filename = "data/sample-f.txt"
+file = open(filename, "r", encoding='UTF8')
+
+letters = list()
+alphabets = "abcdefghijklmnopqrstuvwxyz"
+line = file.readline()
+while(line):
+        for l in line:
+                if( l not in alphabets):
+                        letters.append(l)
+        line=file.readline()
+        
+
 #sc = SparkContext("local", "TestWordCount")
 
 #Words
@@ -16,15 +28,13 @@ file = "test"
 
 def alphabetical(x):
         alphabets = "abcdefghijklmnopqrstuvwxyz"
-        bool = True
+        if(not x.isalpha):
+                return False
         for c in x.lower():
                 if(c not in alphabets):
-                        bool = False
-        return bool
+                        return False
+        return True
 	
-	
-print(filter(None, re.split("[, .;:?!\"()\[\]{}\-_]+", text)))
+#print(filter(None, re.split("[, .;:?!\"()\[\]{}\-_]+", text)))
 
-x = "asdf@%&*/\ ^'#><~=+asdf"
-print(alphabetical(x))
-#Letters
+#x = "asdf@%&*/\ ^'#><~=+asdf"

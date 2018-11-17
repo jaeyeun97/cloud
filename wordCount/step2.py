@@ -1,8 +1,7 @@
 # -- coding: utf-8 --
-
 import re
 import math
-from pyspark import SparkContext, SparkConf
+from pyspark import SparkContext
 from pyspark.sql import SQLContext
 
 sc = SparkContext("local", "wordCount")
@@ -30,6 +29,7 @@ allWordsTemp = filtered.map(lambda x:("total", 1)) \
 allWordsDict = allWordsTemp.collectAsMap()
 allWords = allWordsTemp.collect()
 
+
 sqlc.createDataFrame(allWords, ["AllTotal", "count"]).show()
 
 distinctWordsTemp = filtered.map(lambda x:(x,1)) \
@@ -56,10 +56,15 @@ rare = math.floor(dCount * 0.95)
 common_l = math.floor(dCount * 0.475)
 common_u = math.ceil(dCount * 0.525)
 
-#Letters
 print(aCount)
 print(dCount)
 print(popular)
 print(common_l)
 print(common_u)
 print(rare)
+
+sqlc.createDataFrame(wordCount, ["count", "word"]).show()
+
+
+#Letters
+

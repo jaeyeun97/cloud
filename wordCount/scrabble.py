@@ -3,6 +3,7 @@ import re
 #from pyspark import SparkContext
 #from pyspark.sql import SQLContext
 
+
 filename = "data/sample-f.txt"
 file = open(filename, "r", encoding='UTF8')
 
@@ -14,7 +15,7 @@ while(line):
                 if( l not in alphabets):
                         letters.append(l)
         line=file.readline()
-        
+
 
 #sc = SparkContext("local", "TestWordCount")
 
@@ -34,6 +35,8 @@ def alphabetical(x):
                 if(c not in alphabets):
                         return False
         return True
+
+print(alphabetical('æ'))
 	
 #print(filter(None, re.split("[, .;:?!\"()\[\]{}\-_]+", text)))
 

@@ -14,7 +14,7 @@ filtered = sc.textFile('data/sample-f.txt') \
             .flatMap(lambda x: re.split(delimiters, x)) \
             .map(unicode.lower) \
             .filter(lambda w: len(w) > 0) \
-            .filter(lambda w: reduce(lambda x, y: x and y, [c in alphabets for c in w]))
+            .filter(lambda w: reduce(lambda x, y: x and y, (c in alphabets for c in w)))
 
 allWordsTemp = filtered.map(lambda x:("total", 1)) \
                 .reduceByKey(lambda a,b:a+b) \
@@ -37,7 +37,7 @@ distinctWords = distinctWordsTemp.collect()
 
 sqlc.createDataFrame(distinctWords, ["DistinctTotal", "count"]).show()
 
-wordCount = filtered.map(lambda x:(x.lower(),1)) \
+wordCount = filtered.map(lambda x:(x,1)) \
                 .reduceByKey(lambda a,b:a+b) \
                 .map(lambda (a,b):(b,a)) \
                 .sortByKey().collect()

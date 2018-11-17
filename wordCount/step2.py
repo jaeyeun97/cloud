@@ -8,19 +8,13 @@ sc = SparkContext("local", "wordCount")
 sqlc = SQLContext(sc)
 
 delimiters = u'[\n\t ,\.;:?!"\(\)\[\]{}\-_]+'
-
-def strable(w):
-    try:
-        s = str(w)
-        return True
-    except:
-        return False
+alphabets = u'abcdefghijklmnopqrstuvwxyz'
 
 filtered = sc.textFile('data/sample-f.txt') \
             .flatMap(lambda x: re.split(delimiters, x)) \
             .map(unicode.lower) \
-            .filter(unicode.isalpha) \
-            .filter(strable)
+            .filter(lambda w: len(w) > 0) \
+            .filter(lambda w: reduce(lambda x, y: x and y, [c in alphabets for c in w]))
 
 allWordsTemp = filtered.map(lambda x:("total", 1)) \
                 .reduceByKey(lambda a,b:a+b) \

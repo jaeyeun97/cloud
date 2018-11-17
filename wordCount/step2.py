@@ -5,20 +5,24 @@ import math
 from pyspark import SparkContext, SparkConf
 from pyspark.sql import SQLContext
 
-# conf = SparkConf()
 sc = SparkContext("local", "wordCount")
 sqlc = SQLContext(sc)
 
-def alphabetical(x):
-        alphabets = "abcdefghijklmnopqrstuvwxyz"
-        bool = True
-        for c in x.lower():
-                if(c not in alphabets):
-                        bool = False
-        return bool
+delimiters = u'[\n\t ,\.;:?!"\(\)\[\]{}\-_]+'
 
-#Words
-filtered = sc.textFile("data/sample-a.txt").flatMap(lambda x:filter(None, re.split("[, .;:?!\"()\[\]{}\-_]+", x))).filter(lambda x:x.isalpha()).filter(lambda x: alphabetical(x))
+def strable(w):
+    try:
+        s = str(w)
+        return True
+    except:
+        return False
+
+filtered = sc.textFile('data/sample-f.txt') \
+            .flatMap(lambda x: re.split(delimiters, x)) \
+            .map(unicode.lower) \
+            .filter(unicode.isalpha) \
+            .filter(strable)
+
 allWordsTemp = filtered.map(lambda x:("total", 1)) \
                 .reduceByKey(lambda a,b:a+b) \
                 .sortByKey()
@@ -28,7 +32,7 @@ allWords = allWordsTemp.collect()
 
 sqlc.createDataFrame(allWords, ["AllTotal", "count"]).show()
 
-distinctWordsTemp = filtered.map(lambda x:(x.lower(),1)) \
+distinctWordsTemp = filtered.map(lambda x:(x,1)) \
                 .reduceByKey(lambda a,b:1) \
                 .map(lambda (a,b):("distinctTotal", b)) \
                 .reduceByKey(lambda a,b:a+b) \

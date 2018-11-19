@@ -2,8 +2,8 @@
 import re
 import math
 import sys
-from pyspark import SparkContext, SparkConf
-from pyspark.sql import SQLContext, Row
+from pyspark import SparkContext
+from pyspark.sql import SQLContext, Row, SparkSession
 from pyspark.sql.functions import udf
 from pyspark.sql.types import *
 
@@ -12,14 +12,15 @@ cnx=   {'host': 'group2dbinstance.cxezedslevku.eu-west-2.rds.amazonaws.com',
         'password': 'group2sibal',
         'db': 'sw777_CloudComputingCoursework'}
 
-sc = SparkContext("local", "wordCount")
+spark = SparkSession.builder.appName("wordCount").getOrCreate()
+sc = spark.sparkContext
 sqlc = SQLContext(sc)
 
 delimiters = u'[\n\t ,\.;:?!"\(\)\[\]{}\-_]+'
 alphabets = u'abcdefghijklmnopqrstuvwxyz'
 
-if len(sys.argv) < 1:
-    url = 's3a://group-dataset/sample-f.txt'
+if len(sys.argv) < 2:
+    url = 's3a://group-dataset/sample-a.txt'
 else:
     url = sys.argv[1]
     
@@ -80,7 +81,7 @@ DFout.write.format('jdbc').options(
     password = cnx['password']).mode("overwrite").save()
 
 #Letters
-filtered_letters = sc.textFile(file) \
+filtered_letters = sc.textFile(url) \
         .flatMap(lambda x: list(x)) \
         .map(unicode.lower) \
         .filter(lambda w: len(w) > 0) \

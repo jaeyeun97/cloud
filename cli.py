@@ -47,8 +47,8 @@ validate_template = "kops validate cluster --name {cluster_name}"
 view_cluster_template = 'kubectl cluster-info --name {cluster_name}'
 get_nodes_template = 'kubectl get nodes --name {cluster_name}'
 
-deploy_dashboard_template = 'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml --name {cluster_name}'
-access_dashboard_template = "kubectl proxy --name {cluster_name}"
+deploy_dashboard_template = 'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml'
+access_dashboard_template = "kubectl proxy"
 get_password_template = 'kops get secrets kube --type secret -oplaintext --name {cluster_name}'
 get_token_template = 'kops get secrets admin --type secret -oplaintext --name {cluster_name}'
 

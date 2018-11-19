@@ -1,22 +1,22 @@
 # -- coding: utf-8 --
 import re
 import math
-from pyspark import SparkContext
+import sys
+from pyspark import SparkContext, SparkConf
 from pyspark.sql import SQLContext, Row
 
-sc = SparkContext("local", "wordCount")
+sc = SparkContext(conf=SparkConf())
 sqlc = SQLContext(sc)
 
 delimiters = u'[\n\t ,\.;:?!"\(\)\[\]{}\-_]+'
 alphabets = u'abcdefghijklmnopqrstuvwxyz'
 
-hadoop_conf=sc._jsc.hadoopConfiguration()
-
-hadoop_conf.set("fs.s3n.impl", "org.apache.hadoop.fs.s3native.NativeS3FileSystem")
-hadoop_conf.set("fs.s3n.awsAccessKeyId", 'AKIAJ6G7DAUEOXWO74QA')
-hadoop_conf.set("fs.s3n.awsSecretAccessKey", 'BaGy0PVJlD0rc9qk0/H814sExdvmEGDRnvRqFSED') 
-
-filtered = sc.textFile('s3n://group-dataset/sample-a.txt') \
+if len(sys.argv) < 1:
+    url = 's3a://group-dataset/sample-f.txt'
+else:
+    url = sys.argv[1]
+    
+filtered = sc.textFile(url) \
             .flatMap(lambda x: re.split(delimiters, x)) \
             .map(unicode.lower) \
             .filter(lambda w: len(w) > 0) \

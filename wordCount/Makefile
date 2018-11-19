@@ -22,7 +22,7 @@ push:
 runlocal:
 	${SPARK}/bin/spark-submit \
 		--master local[4] \
-		--conf "spark.driver.extraClassPath=jars/aws-java-sdk-bundle-1.11.271.jar:jars/hadoop-aws-3.1.1.jar:jars/mysql-connector-java-8.0.13.jar" \
+		---jars jars/aws-java-sdk-bundle-1.11.271.jar,jars/hadoop-aws-3.1.1.jar,jars/mysql-connector-java-8.0.13.jar \
 		--conf "spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem" \
 		--conf "spark.hadoop.fs.s3a.access.key=AKIAJ6G7DAUEOXWO74QA" \
 		--conf "spark.hadoop.fs.s3a.secret.key=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" \
@@ -37,8 +37,8 @@ runcluster:
     --conf spark.executor.instances=10 \
 	--conf spark.kubernetes.container.image=jaeyeun97/wordcount:latest \
 	--conf spark.kubernetes.container.image.pullPolicy=Always \
-	--conf spark.kubernetes.authenticate.driver.serviceAccountName=spark  \
-	--jars http://central.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.1.1/hadoop-aws-3.1.1.jar,http://central.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.11.271/aws-java-sdk-bundle-1.11.271.jar,http://central.maven.org/maven2/mysql/mysql-connector-java/8.0.13/mysql-connector-java-8.0.13.jar \
+	--conf spark.kubernetes.authenticate.driver.serviceAccountName=default  \
+	--jars hadoop-aws-3.1.1.jar,aws-java-sdk-bundle-1.11.271.jar,mysql-connector-java-8.0.13.jar \
 	--conf "spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem" \
 	--conf "spark.hadoop.fs.s3a.access.key=AKIAJ6G7DAUEOXWO74QA" \
 	--conf "spark.hadoop.fs.s3a.secret.key=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" \

@@ -44,13 +44,13 @@ kops create cluster \
 update_template = "kops update cluster --name {cluster_name} --yes"
 validate_template = "kops validate cluster --name {cluster_name}"
 
-view_cluster_command = 'kubectl cluster-info'.split()
-get_nodes_command = 'kubectl get nodes'.split()
+view_cluster_template = 'kubectl cluster-info --name {cluster_name}'
+get_nodes_template = 'kubectl get nodes --name {cluster_name}'
 
-deploy_dashboard_command = 'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml'.split()
-access_dashboard_command = "kubectl proxy".split()
-get_password_command = 'kops get secrets kube --type secret -oplaintext'.split()
-get_token_command = 'kops get secrets admin --type secret -oplaintext'.split()
+deploy_dashboard_template = 'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml --name {cluster_name}'
+access_dashboard_template = "kubectl proxy --name {cluster_name}"
+get_password_template = 'kops get secrets kube --type secret -oplaintext --name {cluster_name}'
+get_token_template = 'kops get secrets admin --type secret -oplaintext --name {cluster_name}'
 
 # Delete Cluster
 delete_template = 'kops delete cluster {cluster_name} --yes'
@@ -155,9 +155,11 @@ class Shibal(object):
                 subprocess.call(validate_command, env=self.environ) 
             elif prompt == 22:
                 # Deploy Dashboard
+                deploy_dashboard_command = deploy_dashboard_template.format(**self.default_options).split()
                 subprocess.call(deploy_dashboard_command, env=self.environ)
             elif prompt == 23:
                 # Access Dashboard
+                access_dashboard_command = access_dashboard_template.format(**self.default_options).split()
                 p = subprocess.Popen(access_dashboard_command, env=self.environ)
                 try:
                     p.communicate(timeout=1)
@@ -166,11 +168,15 @@ class Shibal(object):
                 finally:
                     print("Open: http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/") 
             elif prompt == 3:
+                view_cluster_command = view_cluster_template.format(**self.default_options).split()
                 subprocess.call(view_cluster_command, env=self.environ)
+                get_nodes_command = get_nodes_template.format(**self.default_options).split()
                 subprocess.call(get_nodes_command, env=self.environ)
             elif prompt == 31:
+                get_password_command = get_password_template.format(**self.default_options).split()
                 subprocess.call(get_password_command, env=self.environ)
             elif prompt == 32:
+                get_token_command = get_token_template.format(**self.default_options).split()
                 subprocess.call(get_token_command, env=self.environ) 
             elif prompt == 4:
                 if p:

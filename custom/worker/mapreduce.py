@@ -34,7 +34,9 @@ def mapper(id, partitionNum, input, bucket):	#returns string[] outputNames
         tokens = filter(lambda w:
                     reduce(lambda x,y: x and y, (c in alphabets for c in w)),  
                     filter(lambda x: len(x) > 0,
-                        map(lambda x:x.lower(), re.split(delimiters, line))
+                    map(lambda x:x.lower(), 
+					re.split(delimiters, line)
+						)
                     )
                 )
         # write tokens as (token, 1) to corresponding file

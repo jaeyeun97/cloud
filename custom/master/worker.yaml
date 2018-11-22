@@ -19,3 +19,5 @@ spec:
       value: {bucket_name}
     - name: FILE_NAME
       value: {file_name}
+    - name: WORKER_NUM
+      value: {worker_num}

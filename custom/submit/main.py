@@ -23,7 +23,7 @@ def uploadToS3(key, secret, file_url):
 
     return bucketName, filename
 
-def main(key, secret, file_url):
+def main(key, secret, file_url, chunk_size):
     # read in configuration
     config.load_kube_config()
 
@@ -41,6 +41,7 @@ def main(key, secret, file_url):
             'aws_secret_access_key': secret,
             'bucket_name': bucket_name,
             'file_name': file_name,
+            'chunk_size': chunk_size
         }))
         resp = api.create_namespaced_pod(body=conf, namespace="default")
 
@@ -49,6 +50,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Group2 Custom Word Count Application. You should have a kubernetes configuration set up--check by execute `kubectl`')
     parser.add_argument('file_url', help='file url to count')
     parser.add_argument('--csv', dest='csv', default='credentials.csv', help='CSV file with credentials')
+    parser.add_argument('--chunk-size', dest='chunk_size', default='64', type=int, help='Chunk size in KiB')
     args = parser.parse_args()
 
     username = None
@@ -68,4 +70,4 @@ if __name__ == '__main__':
 
     if key is None or secret is None:
         raise Exception('need key and secret')
-    main(key, secret, args.file_url)
+    main(key, secret, args.file_url, arg.chunk_size)

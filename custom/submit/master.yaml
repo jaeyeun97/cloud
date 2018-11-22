@@ -23,3 +23,5 @@ spec:
       value: {file_name}
     - name: CHUNK_SIZE
       value: {chunk_size}
+    - name: WORKER_COUNT
+      value: {worker_count}

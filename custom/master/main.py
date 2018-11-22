@@ -7,7 +7,11 @@ region = os.environ['AWS_DEFAULT_REGION']
 bucket_name = os.environ['BUCKET_NAME']
 file_name = os.environ['FILE_NAME']
 chunk_size = int(os.environ['CHUNK_SIZE'])
+worker_count = int(os.environ['WORKER_COUNT'])
 newline = '\n'.encode()   
+
+config.load_incluster_config()
+api = client.CoreV1Api()
 
 # get file, chunk it up, upload to s3
 def chunk():
@@ -32,7 +36,21 @@ def chunk():
             chunk_count += 1
     return chunk_count
 
-# start spawning workers
+def spawnWorkers():
+    with open('worker.yaml', 'r') as f:
+        conf_str = f.read().format(**{
+            'aws_access_key_id': key,
+            'aws_secret_access_key': secret,
+            'bucket_name': bucket_name,
+            'file_name': file_name
+        })
+    for i in range(worker_count):
+        conf = yaml.load(conf_str.format(worker_num=i+1))
+        resp = api.create_namespaced_pod(body=conf, namespace="default")
+        
+def getWorkers():
+    resp = api.list_namespaced_pod(namespace='default', label_selector='group2-custom-worker')
+    return resp.items
 
 # infinitely communicate until job over
 
@@ -41,5 +59,4 @@ def chunk():
 # upload to database
 
 def main():
-    config.load_incluster_config()
-    api =
+    pass

@@ -1,24 +1,21 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: Pod
 metadata:
-  name: group2-custom-worker
+  name: group2-custom-worker-{worker_num}
+  labels:
+    run: group2-custom-worker 
 spec:
-  selector:
-    matchLabels:
-      run: group2-custom-worker
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        run: group2-custom-worker
-    spec:
-      containers:
-      - name: wordcount-master
-        image: jaeyeun97/wordcount-worker:latest
-        env:
-        - name: AWS_ACCESS_KEY_ID
-          value: {aws_access_key_id}
-        - name: AWS_SECRET_ACCESS_KEY
-          value: {aws_secret_access_key}
-        - name: AWS_DEFAULT_REGION
-          value: eu-west-2
+  containers:
+  - name: wordcount-worker
+    image: jaeyeun97/wordcount-worker:latest 
+    env:
+    - name: AWS_ACCESS_KEY_ID
+      value: {aws_access_key_id}
+    - name: AWS_SECRET_ACCESS_KEY
+      value: {aws_secret_access_key}
+    - name: AWS_DEFAULT_REGION
+      value: eu-west-2
+    - name: BUCKET_NAME
+      value: {bucket_name}
+    - name: FILE_NAME
+      value: {file_name}

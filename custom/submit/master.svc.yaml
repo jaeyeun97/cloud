@@ -5,7 +5,7 @@ metadata:
   labels:
     run: group2-custom-master
 spec:
-  type: NodePort
+  type: ClusterIP 
   ports:
   - port: 8000
     targetPort: 8000

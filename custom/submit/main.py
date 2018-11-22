@@ -4,8 +4,8 @@ from smart_open import smart_open
 
 bucketName = 'group2-custom'
 
-def uploadToS3(file_url):
-    s3 = boto3.client('s3', aws_access_key_id=self.key, aws_secret_access_key=self.secret)
+def uploadToS3(key, secret, file_url):
+    s3 = boto3.client('s3', aws_access_key_id=key, aws_secret_access_key=secret)
     existing = [item['Name'] for item in s3.list_buckets()['Buckets']]
 
     if bucketName not in existing:
@@ -16,9 +16,9 @@ def uploadToS3(file_url):
             print("New Bucket Created")
 
     filename = os.path.basename(file_url)
-    key = bucket.get_key(filename)
     with smart_open(file_url, 'rb') as l:
-        with smart_open(key, 'wb') as r:
+        with smart_open('s3://{}/{}'.format(bucketName, filename), 'wb', 
+                s3_session=boto3.Session(aws_access_key_id=key, aws_secret_access_key=secret)) as r:
             r.write(l.read())
 
     return bucketName, filename
@@ -27,17 +27,16 @@ def main(key, secret, file_url):
     # read in configuration
     config.load_kube_config()
 
-    bucket_name, file_name = uploadToS3(file_url)
+    bucket_name, file_name = uploadToS3(key, secret, file_url)
     
     # populate .yaml file
     with open('master.svc.yaml', 'r') as f:
         conf = yaml.load(f.read())
         api = client.CoreV1Api()
         resp = api.create_namespaced_service(body=conf, namespace="default")
-        print(resp)
 
     with open('master.yaml', 'r') as f:
-        conf = yaml.load(f.read().format({
+        conf = yaml.load(f.read().format(**{
             'aws_access_key_id': key,
             'aws_secret_access_key': secret,
             'bucket_name': bucket_name,
@@ -45,7 +44,6 @@ def main(key, secret, file_url):
         }))
         api = client.AppsV1Api()
         resp = api.create_namespaced_deployment(body=conf, namespace="default")
-        print(resp)
 
    
 if __name__ == '__main__':

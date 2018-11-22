@@ -6,7 +6,6 @@ spec:
   selector:
     matchLabels:
       run: group2-custom-master
-  replicas: 1
   template:
     metadata:
       labels:

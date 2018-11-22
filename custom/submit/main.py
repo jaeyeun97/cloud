@@ -28,11 +28,11 @@ def main(key, secret, file_url):
     config.load_kube_config()
 
     bucket_name, file_name = uploadToS3(key, secret, file_url)
+    api = client.CoreV1Api()
     
     # populate .yaml file
     with open('master.svc.yaml', 'r') as f:
         conf = yaml.load(f.read())
-        api = client.CoreV1Api()
         resp = api.create_namespaced_service(body=conf, namespace="default")
 
     with open('master.yaml', 'r') as f:
@@ -42,8 +42,7 @@ def main(key, secret, file_url):
             'bucket_name': bucket_name,
             'file_name': file_name,
         }))
-        api = client.AppsV1Api()
-        resp = api.create_namespaced_deployment(body=conf, namespace="default")
+        resp = api.create_namespaced_pod(body=conf, namespace="default")
 
    
 if __name__ == '__main__':

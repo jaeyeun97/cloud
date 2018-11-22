@@ -1,29 +1,23 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: Pod
 metadata:
   name: group2-custom-master
+  labels:
+    run: group2-custom-master
 spec:
-  selector:
-    matchLabels:
-      run: group2-custom-master
-  template:
-    metadata:
-      labels:
-        run: group2-custom-master
-    spec:
-      containers:
-      - name: wordcount-master
-        image: jaeyeun97/wordcount-master:latest
-        ports:
-        - containerPort: 8000
-        env:
-        - name: AWS_ACCESS_KEY_ID
-          value: {aws_access_key_id}
-        - name: AWS_SECRET_ACCESS_KEY
-          value: {aws_secret_access_key}
-        - name: AWS_DEFAULT_REGION
-          value: eu-west-2
-        - name: BUCKET_NAME
-          value: {bucket_name}
-        - name: FILE_NAME
-          value: {file_name}
+  containers:
+   - name: wordcount-master
+     image: jaeyeun97/wordcount-master:latest
+     ports:
+     - containerPort: 8000
+     env:
+     - name: AWS_ACCESS_KEY_ID
+       value: {aws_access_key_id}
+     - name: AWS_SECRET_ACCESS_KEY
+       value: {aws_secret_access_key}
+     - name: AWS_DEFAULT_REGION
+       value: eu-west-2
+     - name: BUCKET_NAME
+       value: {bucket_name}
+     - name: FILE_NAME
+       value: {file_name}

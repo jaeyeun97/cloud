@@ -1,4 +1,4 @@
-import yaml, boto3, smart_open, os
+import yaml, boto3, smart_open, os, socket
 from kubernetes import client, config, watch
 
 key = os.environ['AWS_ACCESS_KEY_ID']
@@ -12,6 +12,9 @@ newline = '\n'.encode()
 
 config.load_incluster_config()
 api = client.CoreV1Api()
+
+mapStat = dict()
+reduceStat = dict()
 
 # get file, chunk it up, upload to s3
 def chunk():
@@ -53,6 +56,44 @@ def getWorkers():
     return resp.items
 
 # infinitely communicate until job over
+
+def commWorker(conn):
+    while True:
+        try:
+            r = conn.recv(4096).decode('utf-8').split(' ') 
+            if r[0] != 'worker':
+                continue
+            worker_num = int(r[1])
+            status = r[2]
+            args = r[3:]
+            if status == 'init':
+                if mapNotDone:
+                    
+                pass
+            elif status == 'doing':
+                func_name = args[0]
+                # update worker status
+                if func_name == 'map':
+                    pass
+                elif func_name == 'reduce':
+                    pass
+            elif status == 'done':
+                func_name = args[0] 
+                if func_name == 'map':
+                    pass
+                elif func_name == 'reduce':
+                    pass
+            
+
+def communicate():
+    s = socket.socket()
+    host = socket.gethostname()
+    port = 8000 
+    s.bind((host, port))
+    s.listen(5)
+    while True:
+       conn, addr = s.accept()
+       commWorker(conn)
 
 # combine results
 

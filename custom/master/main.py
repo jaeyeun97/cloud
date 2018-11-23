@@ -69,31 +69,35 @@ def chunk():
     chunk_count = 0 
     while True:
         new_read = body.read(chunk_size*1024)
+        if len(new_read) == 0 and len(partial_chunk) == 0:
+            break
         chunk = partial_chunk + new_read
         last_newline = chunk.rfind(newline) 
         result = chunk[0:last_newline+1]
         print("Chunk Count {}".format(chunk_count))
-        print("Result {}".format(result.decode('utf-8'))
+        print("Result {}".format(result.decode('utf-8')))
         chunk_name = "{}:{}".format(file_name, chunk_count)
         s3.put_object(Body=result, Bucket=bucket_name, Key=chunk_name)
         mapWordStat[chunk_count] = 'unassigned'
         mapLetterStat[chunk_count] = 'unassigned'
         if len(new_read) == 0:
             break
-        partial_chunk = chunk[last_newline+1:]
-        chunk_count += 1
+        else:
+            partial_chunk = chunk[last_newline+1:]
+            chunk_count += 1
     return chunk_count
 
 def spawnWorkers():
     with open('worker.yaml', 'r') as f:
-        conf_str = f.read().format(**{
+        conf_str = f.read()
+    for i in range(worker_count):
+        conf = yaml.load(conf_str.format(**{
             'aws_access_key_id': key,
             'aws_secret_access_key': secret,
             'bucket_name': bucket_name,
-            'file_name': file_name
-        })
-    for i in range(worker_count):
-        conf = yaml.load(conf_str.format(worker_num=i+1))
+            'file_name': file_name,
+            'worker_num': i+1
+        }).format())
         resp = api.create_namespaced_pod(body=conf, namespace="default")
         
 def getWorkers():
@@ -244,6 +248,7 @@ def uploadSQL(t, l, session):
 def main(): 
     session = Session()
     chunk_size = chunk()
+    spawnWorkers()
     s = initSocket()
     communicate(s)
     for t in ['word', 'letter']:

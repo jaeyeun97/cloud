@@ -25,3 +25,6 @@ spec:
       value: '{chunk_size}'
     - name: WORKER_COUNT
       value: '{worker_count}'
+    - name: PYTHONUNBUFFERED
+      value: '0'
+  serviceAccountName: group2-custom-account

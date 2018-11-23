@@ -20,4 +20,4 @@ spec:
     - name: FILE_NAME
       value: {file_name}
     - name: WORKER_NUM
-      value: {worker_num}
+      value: '{worker_num}'

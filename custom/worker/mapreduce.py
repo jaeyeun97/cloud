@@ -1,14 +1,19 @@
 import re
 import boto3
+import os
+import socket
 from boto3.session import Session
 from functools import reduce
 
-
+#import from environment
 AWS_ACCESS_KEY_ID = 'AKIAJ6G7DAUEOXWO74QA'
 AWS_SECRET_ACCESS_KEY = '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'
+id = 123
 bucket_name = 'group2-custom'
+host_service = 'asdf'
+port_service = '1234'
 
-def mapper(id, partitionNum, input, bucket):	#returns string[] outputNames
+def mapper(id, input, partitionNum, bucket):	#returns string[] outputNames
 	#create temp files according to partitionNum
 	files = list()
 	for i in range(0, partitionNum):
@@ -55,7 +60,7 @@ def mapper(id, partitionNum, input, bucket):	#returns string[] outputNames
 	print("id {0} finished map".format(id))
 	return outputNames
 
-def reducer(id, partition, bucket):
+def reducer(id, partition, bucket): #returns string output file name
 	#get input files
 	session = Session(aws_access_key_id=AWS_ACCESS_KEY_ID, 
 			aws_secret_access_key = AWS_SECRET_ACCESS_KEY,
@@ -102,9 +107,41 @@ def reducer(id, partition, bucket):
 	bucket.upload_file('output.txt', fname)
 	
 	print("id {0} finished reduce".format(id))
-	return ""
+	return fname
 
-mapper(123, 3, 'sample-a.txt', bucket_name)
-reducer(123, 0, bucket_name)
+'''
+worker: worker x init
+master: map <chunk_name>  <num_partition>
+worker: worker x doing map <chunk_name> <num_partition>
+worker: worker x done map <chunk_name> <num_partition>
+master: reduce <partition_num>
+worker: worker x doing reduce <partition_num>
+worker: worker x done reduce <partition_num>
+master: kill worker x
+'''
+if __name__ == '__main__':
+	s = socket.socket()
+	s.connect(host_service, int(port_service))
+	
+	while True:
+		#say I'm ready
+		s.send("worker {0} init".format(id))
+		#wait for job
+		job = s.recv(4096).decode('utf-8')
+		jobToken = job.split(' ')
+		if jobToken[0] == 'map':
+			s.send("worker {0} doing map {1} {2}".format(id, jobToken[1], jobToken[2]))
+			mapper(id,  jobToken[1], jobToken[2], bucket_name)
+			s.send("worker {0} done map {1} {2}".format(id, jobToken[1], jobToken[2]))
+		elif jobToken[0] == 'reduce':
+			s.send("worker {0} doing reduce {1}".format(id, jobToken[1])
+			reducer(id, jobToken[1], bucket_name)
+			s.send("worker {0} done reduce {1}".format(id, jobToken[1])
+		elif jobToken[0] == 'kill':
+			break
+		else:
+			err = "Error: some communication error took place"
+			print(err)
+			#maybe send error to master?
 
-print("done")
+print("done, I can kill myself!")

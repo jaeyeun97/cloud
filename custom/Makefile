@@ -27,4 +27,4 @@ build_%:
 	docker push $(USER_HANDLE)/$(IMG_PREFIX)$*
 
 run:
-	cd ./submit && python main.py --csv ../credentials.csv https://s3.eu-west-2.amazonaws.com/group-dataset/sample-a.txt
+	cd ./submit && python main.py --csv ../../credentials.csv https://s3.eu-west-2.amazonaws.com/group-dataset/sample-a.txt

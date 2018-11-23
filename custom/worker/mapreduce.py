@@ -6,12 +6,13 @@ from boto3.session import Session
 from functools import reduce
 
 #import from environment
-AWS_ACCESS_KEY_ID = 'AKIAJ6G7DAUEOXWO74QA'
-AWS_SECRET_ACCESS_KEY = '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'
-id = 123
-bucket_name = 'group2-custom'
-host_service = 'asdf'
-port_service = '1234'
+AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
+AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
+region = os.environ['AWS_DEFAULT_REGION']
+bucket_name = os.environ['BUCKET_NAME']
+id = os.environ['WORKER_NUM']
+host_service = os.environ['GROUP2_CUSTOM_MASTER_SERVICE_HOST']
+port_service = os.environ['GROUP2_CUSTOM_MASTER_SERVICE_PORT']
 
 def mapper(id, input, partitionNum, bucket):	#returns string[] outputNames
 	#create temp files according to partitionNum
@@ -70,8 +71,7 @@ def reducer(id, partition, bucket): #returns string output file name
 	allFiles = map(lambda x:x.key, bucket.objects.all())
 	needFiles = filter(lambda x : re.split('[_.]', x)[0] == 'map' and int(re.split('[_.]', x)[2]) == partition, allFiles)
 		
-	#put contents into a dictionary
-	kv = {}
+	#put contents into a file
 	temp = open('temp.txt', 'w+')
 	
 	#merge files to sortedF.txt

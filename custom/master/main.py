@@ -181,13 +181,15 @@ def communicate(s):
        
 
 # combine results
-def combineAndSort():
+def combineAndSort(t):
+    if t != 'word' and t != 'letter':
+        return None
     #get input files
     session = Session(aws_access_key_id=key, aws_secret_access_key=secret, region_name=region)
     s3 = session.resource('s3')
     bucket = s3.Bucket(bucket_name)
     allFiles = map(lambda x:x.key, bucket.objects.all())
-    needFiles = filter(lambda x : re.split('[_.]', x)[0] == 'word' and re.split('[_.]', x)[0] == 'reduce', allFiles)
+    needFiles = filter(lambda x : re.split('[_.]', x)[0] == t and re.split('[_.]', x)[0] == 'reduce', allFiles)
 
 	#put contents into a dictionary
     odict = {}
@@ -201,10 +203,12 @@ def combineAndSort():
                 enumerate(sorted(sorted(odict.items(), key=lambda p: p[0]), key=lambda p: p[1]))))	
 
 
-def uploadSQL(l):
+def uploadSQL(t, l):
     session = Session()
-    session.query(Word).delete()
-    session.query(Letter).delete()
+    if t == 'word':
+        session.query(Word).delete()
+    else:
+        session.query(Letter).delete()
     
     dCount = len(l)
     popular = int(math.ceil(dCount * 0.05))
@@ -212,7 +216,7 @@ def uploadSQL(l):
     common_l = int(math.floor(dCount * 0.475))
     common_u = int(math.ceil(dCount * 0.525))
     
-    for rank, word, frequency in l:
+    for rank, element, frequency in l:
         if rank <= popular:
             category = 'popular'
         elif common_l <= rank <= common_u: 
@@ -220,7 +224,11 @@ def uploadSQL(l):
         elif rare <= rank:
             category = 'rare'
         if category:
-            session.add(Word(rank, word, category, frequency))
+            if t == 'word':
+                session.add(Word(rank, element, category, frequency))
+            else:
+                session.add(Letter(rank, element, category, frequency))
+            
     session.commit()
 
 def main(): 

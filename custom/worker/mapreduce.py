@@ -37,11 +37,12 @@ def word_mapper(id, input, partitionNum, bucket):  # returns string[] outputName
 
     # read input line by line
     while line != "":
+        print ("line print: " + line)
         # tokenize
         tokens = filter(lambda w: reduce(lambda x, y: x and y, (c in alphabets for c in w)),
                         filter(lambda x: len(x) > 0,
                                map(lambda x: x.lower(),
-                                   re.split(delimiters, line.encode('utf-8')))))
+                                   re.split(delimiters, line.decode('utf-8')))))
 
         # write tokens as (token, 1) to corresponding file
         for token in tokens:
@@ -137,7 +138,7 @@ def letter_mapper(id, input, partitionNum, bucket):    #returns string[] outputN
         tokens = filter(lambda w: reduce(lambda x,y: x and y, (c in alphabets for c in w)),
                                 filter(lambda x:len(x)>0,
                                 map(lambda x:x.lower(),
-                                list(line.encode('utf-8')))))
+                                list(line.decode('utf-8')))))
 
         #write tokens as (token, 1) to corresponding file
         for token in tokens:
@@ -224,12 +225,14 @@ if __name__ == '__main__':
 
     while True:
         # say I'm ready
+        print("sending: worker {0} init".format(id))
         s.send("worker {0} init".format(id).encode('utf-8'))
         # wait for job
         job = s.recv(4096).decode('utf-8')
         print(job)
         jobToken = job.split(' ')
         if jobToken[0] == 'mapWord':
+
             s.send("worker {0} doing mapWord {1} {2}".format(id, jobToken[1], jobToken[2]).encode('utf-8'))
             word_mapper(id,  jobToken[1], int(jobToken[2]), bucket_name)
             s.send("worker {0} done mapWord {1} {2}".format(id, jobToken[1], jobToken[2]).encode('utf-8'))

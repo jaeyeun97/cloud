@@ -1,5 +1,41 @@
-import yaml, boto3, smart_open, os, socket
-from kubernetes import client, config, watch
+import yaml, boto3, smart_open
+import re, math, os, socket, threading
+from boto3.session import Session
+from kubernetes import client, config
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import create_engine, sessionmaker, Column, Integer, String
+
+engine = create_engine('sqlite:///:memory:', echo=True)
+Session = sessionmaker(bind=engine)
+Base = declarative_base()
+
+class Word(Base):
+    __tablename__='words_custom'
+    rank = Column(Integer)
+    word = Column(String)
+    category = Column(String)
+    frequency = Column(Integer)
+    
+    def __init__(self, rank, word, category, frequency):
+        self.rank = rank
+        self.word = word,
+        self.category = category
+        self.frequency = frequency
+    
+class Letter(Base):
+    __tablename__='letters_custom'
+    rank = Column(Integer)
+    letter = Column(String)
+    category = Column(String)
+    frequency = Column(Integer)
+    
+    def __init__(self, rank, letter, category, frequency):
+        self.rank = rank
+        self.letter = letter,
+        self.category = category
+        self.frequency = frequency
+    
+Base.metadata.create_all()
 
 key = os.environ['AWS_ACCESS_KEY_ID']
 secret = os.environ['AWS_SECRET_ACCESS_KEY']
@@ -8,13 +44,21 @@ bucket_name = os.environ['BUCKET_NAME']
 file_name = os.environ['FILE_NAME']
 chunk_size = int(os.environ['CHUNK_SIZE'])
 worker_count = int(os.environ['WORKER_COUNT'])
+partition_num = 2 * worker_count
 newline = '\n'.encode()   
 
 config.load_incluster_config()
 api = client.CoreV1Api()
 
+# chunk/partition: 'unassigned', 'doing', 'done'
 mapStat = dict()
 reduceStat = dict()
+# woker number : {'map', 'reduce', 'idle'}
+workerStat = dict()
+# locks
+mapLock = threading.Lock()
+reduceLock = threading.Lock()
+workerLock = threading.Lock()
 
 # get file, chunk it up, upload to s3
 def chunk():
@@ -32,6 +76,7 @@ def chunk():
         result = chunk[0:last_newline+1]
         chunk_name = "{}:{}".format(file_name, chunk_count)
         s3.put_object(Body=result, Bucket=bucket_name, Key=chunk_name)
+        mapStat[chunk_count] = 'unassigned'
         if len(partial_chunk) == 0:
             break
         else:
@@ -67,37 +112,124 @@ def commWorker(conn):
             status = r[2]
             args = r[3:]
             if status == 'init':
-                if mapNotDone:
-                    
-                pass
+                workerStat[worker_num] = 'idle'
+                #workerStat will need to be locked as well for worker entering/leaving feature
             elif status == 'doing':
                 func_name = args[0]
-                # update worker status
+                workerStat[worker_num] = func_name
                 if func_name == 'map':
-                    pass
+                    chunk_count = int(args[1])
+                    mapStat[chunk_count] = 'doing'
                 elif func_name == 'reduce':
-                    pass
+                    partition_count = int(args[1])
+                    reduceStat[partition_count] = 'doing'
             elif status == 'done':
-                func_name = args[0] 
+                func_name = args[0]
+                workerStat[worker_num] = 'idle'
                 if func_name == 'map':
-                    pass
+                    chunk_count = int(args[1])
+                    mapStat[chunk_count] = 'done'
                 elif func_name == 'reduce':
-                    pass
-            
+                    partition_count = int(args[1])
+                    reduceStat[partition_count] = 'done'
+            if workerStat[worker_num] == 'idle':
+                # assign job or kill
+                mapLock.acquire()
+                reduceLock.acquire()
+                if 'unassigned' in mapStat.values():
+                    for k, v in mapStat.items():
+                        if v == 'unassigned':
+                            #give map job
+                            conn.send("map {} {}".format(k, partition_num))
+                            print("assigned map for chunk {} to {}".format(k, worker_num))
+                            break
+                    mapLock.release()
+                    reduceLock.release()
+                elif 'unassigned' in reduceStat.values():
+                    for k, v in reduceStat.items():
+                        if v == 'unassigned':
+                            #give reduce job
+                            conn.send("reduce {}".format(k))
+                            print("assigned reduce for partition {} to {}".format(k, worker_num))
+                            break
+                    mapLock.release()
+                    reduceLock.release()
+                else:
+                    conn.send("kill worker {}".format(worker_num))
+                    print("just killed worker {}".format(worker_num))
+                    mapLock.release()
+                    reduceLock.release()
+                    break
 
-def communicate():
+        except:
+            print('Something gone wrong')
+
+
+def initSocket():
     s = socket.socket()
     host = socket.gethostname()
     port = 8000 
     s.bind((host, port))
-    s.listen(5)
+    s.listen(10)
+    return s
+
+def communicate(s):
     while True:
        conn, addr = s.accept()
-       commWorker(conn)
+       threading.Thread(target=commWorker, args=(conn,)).start()
+       
+       
 
 # combine results
+def combineAndSort(t):
+    if t != 'word' and t != 'letter':
+        return None
+    #get input files
+    session = Session(aws_access_key_id=key, aws_secret_access_key=secret, region_name=region)
+    s3 = session.resource('s3')
+    bucket = s3.Bucket(bucket_name)
+    allFiles = map(lambda x:x.key, bucket.objects.all())
+    needFiles = filter(lambda x : re.split('[_.]', x)[0] == t and re.split('[_.]', x)[0] == 'reduce', allFiles)
 
-# upload to database
+	#put contents into a dictionary
+    odict = {}
+	
+	#merge files to sortedF.txt
+    for f in needFiles:
+        rawLine = s3.Object(bucket_name, f).get()['Body'].readline().rstrip().split('\t')
+        odict[rawLine[0]] = int(rawLine[1])
+	    
+    return list(map(lambda p: (p[0]+1, p[1][0], p[1][1]),
+                enumerate(sorted(sorted(odict.items(), key=lambda p: p[0]), key=lambda p: p[1]))))	
 
-def main():
-    pass
+
+def uploadSQL(t, l):
+    session = Session()
+    if t == 'word':
+        session.query(Word).delete()
+    else:
+        session.query(Letter).delete()
+    
+    dCount = len(l)
+    popular = int(math.ceil(dCount * 0.05))
+    rare = int(math.floor(dCount * 0.95))
+    common_l = int(math.floor(dCount * 0.475))
+    common_u = int(math.ceil(dCount * 0.525))
+    
+    for rank, element, frequency in l:
+        if rank <= popular:
+            category = 'popular'
+        elif common_l <= rank <= common_u: 
+            category = 'common'
+        elif rare <= rank:
+            category = 'rare'
+        if category:
+            if t == 'word':
+                session.add(Word(rank, element, category, frequency))
+            else:
+                session.add(Letter(rank, element, category, frequency))
+            
+    session.commit()
+
+def main(): 
+    chunk_size = chunk()

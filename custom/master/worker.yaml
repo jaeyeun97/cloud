@@ -3,11 +3,11 @@ kind: Pod
 metadata:
   name: group2-custom-worker-{worker_num}
   labels:
-    run: group2-custom-worker 
+    run: group2-custom-worker
 spec:
   containers:
   - name: wordcount-worker
-    image: jaeyeun97/wordcount-worker:latest 
+    image: {worker_image} 
     env:
     - name: AWS_ACCESS_KEY_ID
       value: {aws_access_key_id}

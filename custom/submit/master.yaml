@@ -7,7 +7,7 @@ metadata:
 spec:
   containers:
   - name: wordcount-master
-    image: jaeyeun97/wordcount-master:latest
+    image: {master_image}
     ports:
     - containerPort: 8000
     env:

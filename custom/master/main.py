@@ -52,6 +52,7 @@ bucket_name = os.environ['BUCKET_NAME']
 file_name = os.environ['FILE_NAME']
 chunk_size = int(os.environ['CHUNK_SIZE'])
 worker_count = int(os.environ['WORKER_COUNT'])
+worker_image = os.environ['WORKER_IMAGE']
 partition_num = 2 * worker_count
 newline = '\n'.encode()
 
@@ -105,6 +106,7 @@ def spawnWorkers():
             'aws_secret_access_key': secret,
             'bucket_name': bucket_name,
             'file_name': file_name,
+            'worker_image': worker_image,
             'worker_num': i+1
         }).format())
         resp = api.create_namespaced_pod(body=conf, namespace="default")

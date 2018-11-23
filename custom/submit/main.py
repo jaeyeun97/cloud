@@ -1,8 +1,13 @@
-import argparse, yaml, csv, boto3, os
+import argparse
+import yaml
+import csv
+import boto3
+import os
 from kubernetes import config, client
 from smart_open import smart_open
 
 bucketName = 'group2-custom'
+
 
 def uploadToS3(key, secret, file_url):
     s3 = boto3.client('s3', aws_access_key_id=key, aws_secret_access_key=secret)
@@ -16,15 +21,15 @@ def uploadToS3(key, secret, file_url):
             print("New Bucket Created")
 
     filename = os.path.basename(file_url)
-    with smart_open(file_url, 'rb') as l:
+    with smart_open(file_url, 'rb') as local:
         with smart_open('s3://{}/{}'.format(bucketName, filename), 'wb',
                         s3_session=boto3.Session(aws_access_key_id=key, aws_secret_access_key=secret)) as r:
-            r.write(l.read())
+            r.write(local.read())
 
     return bucketName, filename
 
 
-def main(key, secret, file_url, chunk_size, worker_count):
+def main(key, secret, file_url, chunk_size, master_image, worker_image, worker_count):
     # read in configuration
     config.load_kube_config()
 
@@ -43,6 +48,8 @@ def main(key, secret, file_url, chunk_size, worker_count):
             'bucket_name': bucket_name,
             'file_name': file_name,
             'chunk_size': chunk_size,
+            'master_image': master_image,
+            'worker_image': worker_image,
             'worker_count': worker_count
         }))
         resp = api.create_namespaced_pod(body=conf, namespace="default")
@@ -53,6 +60,8 @@ if __name__ == '__main__':
     parser.add_argument('file_url', help='file url to count')
     parser.add_argument('--csv', dest='csv', default='credentials.csv', help='CSV file with credentials')
     parser.add_argument('--chunk-size', dest='chunk_size', default='64', type=int, help='Chunk size in KiB')
+    parser.add_argument('--master-image', dest='master_image', default='jaeyeun97/wordcount-master:latest', type=int, help='Master Docker Image')
+    parser.add_argument('--worker-image', dest='worker_image', default='jaeyeun97/wordcount-worker:latest', type=int, help='Worker Docker Image')
     parser.add_argument('--worker-count', dest='worker_count', default='5', type=int, help='Number of workers to spawn')
     args = parser.parse_args()
 
@@ -73,4 +82,4 @@ if __name__ == '__main__':
 
     if key is None or secret is None:
         raise Exception('need key and secret')
-    main(key, secret, args.file_url, args.chunk_size, args.worker_count)
+    main(key, secret, args.file_url, args.chunk_size, args.master_image, args.worker_image, args.worker_count)

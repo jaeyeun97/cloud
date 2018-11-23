@@ -60,8 +60,8 @@ if __name__ == '__main__':
     parser.add_argument('file_url', help='file url to count')
     parser.add_argument('--csv', dest='csv', default='credentials.csv', help='CSV file with credentials')
     parser.add_argument('--chunk-size', dest='chunk_size', default='64', type=int, help='Chunk size in KiB')
-    parser.add_argument('--master-image', dest='master_image', default='jaeyeun97/wordcount-master:latest', type=int, help='Master Docker Image')
-    parser.add_argument('--worker-image', dest='worker_image', default='jaeyeun97/wordcount-worker:latest', type=int, help='Worker Docker Image')
+    parser.add_argument('--master-image', dest='master_image', default='jaeyeun97/wordcount-master:latest', help='Master Docker Image')
+    parser.add_argument('--worker-image', dest='worker_image', default='jaeyeun97/wordcount-worker:latest', help='Worker Docker Image')
     parser.add_argument('--worker-count', dest='worker_count', default='5', type=int, help='Number of workers to spawn')
     args = parser.parse_args()
 

@@ -215,7 +215,7 @@ master: kill worker x
 '''
 if __name__ == '__main__':
 	s = socket.socket()
-	s.connect(host_service, int(port_service))
+	s.connect(((host_service, int(port_service))))
 	
 	while True:
 		#say I'm ready

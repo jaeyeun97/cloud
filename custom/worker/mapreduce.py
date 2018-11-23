@@ -41,7 +41,7 @@ def word_mapper(id, input, partitionNum, bucket):  # returns string[] outputName
         tokens = filter(lambda w: reduce(lambda x, y: x and y, (c in alphabets for c in w)),
                         filter(lambda x: len(x) > 0,
                                map(lambda x: x.lower(),
-                                   re.split(delimiters, line))))
+                                   re.split(delimiters, line.encode('utf-8')))))
 
         # write tokens as (token, 1) to corresponding file
         for token in tokens:
@@ -137,7 +137,7 @@ def letter_mapper(id, input, partitionNum, bucket):    #returns string[] outputN
         tokens = filter(lambda w: reduce(lambda x,y: x and y, (c in alphabets for c in w)),
                                 filter(lambda x:len(x)>0,
                                 map(lambda x:x.lower(),
-                                list(line))))
+                                list(line.encode('utf-8')))))
 
         #write tokens as (token, 1) to corresponding file
         for token in tokens:

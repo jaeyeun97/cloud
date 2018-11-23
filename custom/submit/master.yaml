@@ -16,12 +16,12 @@ spec:
     - name: AWS_SECRET_ACCESS_KEY
       value: {aws_secret_access_key}
     - name: AWS_DEFAULT_REGION
-      value: eu-west-2
+      value: 'eu-west-2'
     - name: BUCKET_NAME
       value: {bucket_name}
     - name: FILE_NAME
       value: {file_name}
     - name: CHUNK_SIZE
-      value: {chunk_size}
+      value: '{chunk_size}'
     - name: WORKER_COUNT
-      value: {worker_count}
+      value: '{worker_count}'

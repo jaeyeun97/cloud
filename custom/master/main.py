@@ -3,7 +3,8 @@ import re, math, os, socket, threading
 from boto3.session import Session
 from kubernetes import client, config
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import create_engine, sessionmaker, Column, Integer, String
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.orm import sessionmaker
 
 engine = create_engine('mysql+pymysql://group2:group2sibal@group2dbinstance.cxezedslevku.eu-west-2.rds.amazonaws.com/sw777_CloudComputingCoursework', echo=True)
 Session = sessionmaker(bind=engine)
@@ -11,9 +12,9 @@ Base = declarative_base()
 
 class Word(Base):
     __tablename__='words_custom'
-    rank = Column(Integer)
-    word = Column(String)
-    category = Column(String)
+    rank = Column(Integer, primary_key=True)
+    word = Column(String(40))
+    category = Column(String(40))
     frequency = Column(Integer)
     
     def __init__(self, rank, word, category, frequency):
@@ -24,9 +25,9 @@ class Word(Base):
     
 class Letter(Base):
     __tablename__='letters_custom'
-    rank = Column(Integer)
-    letter = Column(String)
-    category = Column(String)
+    rank = Column(Integer, primary_key=True)
+    letter = Column(String(5))
+    category = Column(String(40))
     frequency = Column(Integer)
     
     def __init__(self, rank, letter, category, frequency):
@@ -35,7 +36,7 @@ class Letter(Base):
         self.category = category
         self.frequency = frequency
     
-Base.metadata.create_all()
+Base.metadata.create_all(engine)
 
 key = os.environ['AWS_ACCESS_KEY_ID']
 secret = os.environ['AWS_SECRET_ACCESS_KEY']
@@ -62,25 +63,25 @@ workerStat = dict()
 def chunk():
     s3 = boto3.client('s3', aws_access_key_id=key, aws_secret_access_key=secret)
     body = s3.get_object(Bucket=bucket_name, Key=file_name)['Body'] 
-    kbread = body.read(1024)
 
     # the character that we'll split the data with (bytes, not string)
     partial_chunk = b''
     chunk_count = 0 
     while True:
-        new_read = body.read(chunk_size)
+        new_read = body.read(chunk_size*1024)
         chunk = partial_chunk + new_read
         last_newline = chunk.rfind(newline) 
         result = chunk[0:last_newline+1]
+        print("Chunk Count {}".format(chunk_count))
+        print("Result {}".format(result.decode('utf-8'))
         chunk_name = "{}:{}".format(file_name, chunk_count)
         s3.put_object(Body=result, Bucket=bucket_name, Key=chunk_name)
         mapWordStat[chunk_count] = 'unassigned'
         mapLetterStat[chunk_count] = 'unassigned'
-        if len(partial_chunk) == 0:
+        if len(new_read) == 0:
             break
-        else:
-            partial_chunk = chunk[last_newline+1:]
-            chunk_count += 1
+        partial_chunk = chunk[last_newline+1:]
+        chunk_count += 1
     return chunk_count
 
 def spawnWorkers():
@@ -249,3 +250,6 @@ def main():
         l = combineAndSort(t)
         uploadSQL(t, l, session)
     session.commit()
+
+if __name__ == "__main__":
+    main()

@@ -72,4 +72,4 @@ if __name__ == '__main__':
 
     if key is None or secret is None:
         raise Exception('need key and secret')
-    main(key, secret, args.file_url, arg.chunk_size, arg.worker_count)
+    main(key, secret, args.file_url, args.chunk_size, args.worker_count)

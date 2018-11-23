@@ -133,9 +133,9 @@ def letter_mapper(id, input, partitionNum, bucket):	#returns string[] outputName
 	while( line != ""):
 		#tokenize
 		tokens = filter(lambda w: reduce(lambda x,y: x and y, (c in alphabets for c in w)),  
-								filter(lambda x:len(x)>0, 
+								filter(lambda x:len(x)>0,
 								map(lambda x:x.lower(), 
-								re.split(delimiters, line))))
+								list(line))))
 								
 		#write tokens as (token, 1) to corresponding file
 		for token in tokens:
@@ -223,14 +223,24 @@ if __name__ == '__main__':
 		#wait for job
 		job = s.recv(4096).decode('utf-8')
 		jobToken = job.split(' ')
-		if jobToken[0] == 'map':
-			s.send("worker {0} doing map {1} {2}".format(id, jobToken[1], jobToken[2]))
-			mapper(id,  jobToken[1], jobToken[2], bucket_name)
-			s.send("worker {0} done map {1} {2}".format(id, jobToken[1], jobToken[2]))
-		elif jobToken[0] == 'reduce':
-			s.send("worker {0} doing reduce {1}".format(id, jobToken[1])
-			reducer(id, jobToken[1], bucket_name)
-			s.send("worker {0} done reduce {1}".format(id, jobToken[1])
+		if jobToken[0] == 'mapWord':
+			s.send("worker {0} doing mapWord {1} {2}".format(id, jobToken[1], jobToken[2]))
+			word_mapper(id,  jobToken[1], jobToken[2], bucket_name)
+			s.send("worker {0} done mapWord {1} {2}".format(id, jobToken[1], jobToken[2]))
+		elif jobToken[0] == 'reduceWord':
+			s.send("worker {0} doing reduceWord {1}".format(id, jobToken[1])
+			word_reducer(id, jobToken[1], bucket_name)
+			s.send("worker {0} done reduceWord {1}".format(id, jobToken[1])
+            
+        elif jobToken[0] == 'mapLetter':
+			s.send("worker {0} doing mapLetter {1} {2}".format(id, jobToken[1], jobToken[2]))
+			letter_mapper(id,  jobToken[1], jobToken[2], bucket_name)
+			s.send("worker {0} done mapLetter {1} {2}".format(id, jobToken[1], jobToken[2]))
+		elif jobToken[0] == 'reduceLetter':
+			s.send("worker {0} doing reduceLetter {1}".format(id, jobToken[1])
+			letter_reducer(id, jobToken[1], bucket_name)
+			s.send("worker {0} done reduceLetter {1}".format(id, jobToken[1])
+            
 		elif jobToken[0] == 'kill':
 			break
 		else:

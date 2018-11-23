@@ -7,7 +7,7 @@ metadata:
 spec:
   containers:
   - name: wordcount-worker
-    image: {worker_image} 
+    image: {worker_image}
     env:
     - name: AWS_ACCESS_KEY_ID
       value: {aws_access_key_id}
@@ -21,3 +21,5 @@ spec:
       value: {file_name}
     - name: WORKER_NUM
       value: '{worker_num}'
+    - name: PYTHONUNBUFFERED
+      value: 0

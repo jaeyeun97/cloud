@@ -1,5 +1,9 @@
-import yaml, boto3, smart_open
-import re, math, os, socket, threading
+import yaml
+import boto3
+import re
+import math
+import os
+import socket
 from boto3.session import Session
 from kubernetes import client, config
 from sqlalchemy.ext.declarative import declarative_base
@@ -7,35 +11,38 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker
 
 engine = create_engine('mysql+pymysql://group2:group2sibal@group2dbinstance.cxezedslevku.eu-west-2.rds.amazonaws.com/sw777_CloudComputingCoursework', echo=True)
-Session = sessionmaker(bind=engine)
+SQLSession = sessionmaker(bind=engine)
 Base = declarative_base()
 
+
 class Word(Base):
-    __tablename__='words_custom'
+    __tablename__ = 'words_custom'
     rank = Column(Integer, primary_key=True)
     word = Column(String(40))
     category = Column(String(40))
     frequency = Column(Integer)
-    
+
     def __init__(self, rank, word, category, frequency):
         self.rank = rank
         self.word = word,
         self.category = category
         self.frequency = frequency
-    
+
+
 class Letter(Base):
-    __tablename__='letters_custom'
+    __tablename__ = 'letters_custom'
     rank = Column(Integer, primary_key=True)
     letter = Column(String(5))
     category = Column(String(40))
     frequency = Column(Integer)
-    
+
     def __init__(self, rank, letter, category, frequency):
         self.rank = rank
         self.letter = letter,
         self.category = category
         self.frequency = frequency
-    
+
+
 Base.metadata.create_all(engine)
 
 key = os.environ['AWS_ACCESS_KEY_ID']
@@ -46,7 +53,7 @@ file_name = os.environ['FILE_NAME']
 chunk_size = int(os.environ['CHUNK_SIZE'])
 worker_count = int(os.environ['WORKER_COUNT'])
 partition_num = 2 * worker_count
-newline = '\n'.encode()   
+newline = '\n'.encode()
 
 config.load_incluster_config()
 api = client.CoreV1Api()
@@ -62,30 +69,31 @@ workerStat = dict()
 # get file, chunk it up, upload to s3
 def chunk():
     s3 = boto3.client('s3', aws_access_key_id=key, aws_secret_access_key=secret)
-    body = s3.get_object(Bucket=bucket_name, Key=file_name)['Body'] 
+    body = s3.get_object(Bucket=bucket_name, Key=file_name)['Body']
 
     # the character that we'll split the data with (bytes, not string)
     partial_chunk = b''
-    chunk_count = 0 
+    chunk_count = 0
     while True:
         new_read = body.read(chunk_size*1024)
         if len(new_read) == 0 and len(partial_chunk) == 0:
             break
         chunk = partial_chunk + new_read
-        last_newline = chunk.rfind(newline) 
+        last_newline = chunk.rfind(newline)
         result = chunk[0:last_newline+1]
         print("Chunk Count {}".format(chunk_count))
         print("Result {}".format(result.decode('utf-8')))
         chunk_name = "{}:{}".format(file_name, chunk_count)
         s3.put_object(Body=result, Bucket=bucket_name, Key=chunk_name)
-        mapWordStat[chunk_count] = 'unassigned'
-        mapLetterStat[chunk_count] = 'unassigned'
+        mapWordStat[chunk_name] = 'unassigned'
+        mapLetterStat[chunk_name] = 'unassigned'
         if len(new_read) == 0:
             break
         else:
             partial_chunk = chunk[last_newline+1:]
             chunk_count += 1
     return chunk_count
+
 
 def spawnWorkers():
     with open('worker.yaml', 'r') as f:
@@ -99,7 +107,7 @@ def spawnWorkers():
             'worker_num': i+1
         }).format())
         resp = api.create_namespaced_pod(body=conf, namespace="default")
-        
+
 def getWorkers():
     resp = api.list_namespaced_pod(namespace='default', label_selector='group2-custom-worker')
     return resp.items
@@ -110,7 +118,7 @@ def communicate(s):
     while True:
         conn, addr = s.accept()
         try:
-            r = conn.recv(4096).decode('utf-8').split(' ') 
+            r = conn.recv(4096).decode('utf-8').split(' ')
             if r[0] != 'worker':
                 continue
             worker_num = int(r[1])
@@ -191,7 +199,7 @@ def communicate(s):
 def initSocket():
     s = socket.socket()
     host = socket.gethostname()
-    port = 8000 
+    port = 8000
     s.bind((host, port))
     s.listen(10)
     return s
@@ -210,14 +218,14 @@ def combineAndSort(t):
 
 	#put contents into a dictionary
     odict = {}
-	
-	#merge files to sortedF.txt
+
+	# merge files to sortedF.txt
     for f in needFiles:
         rawLine = s3.Object(bucket_name, f).get()['Body'].readline().rstrip().split('\t')
         odict[rawLine[0]] = int(rawLine[1])
-	    
+
     return list(map(lambda p: (p[0]+1, p[1][0], p[1][1]),
-                enumerate(sorted(sorted(odict.items(), key=lambda p: p[0]), key=lambda p: p[1]))))	
+                enumerate(sorted(sorted(odict.items(), key=lambda p: p[0]), key=lambda p: p[1]))))
 
 
 def uploadSQL(t, l, session):
@@ -225,17 +233,17 @@ def uploadSQL(t, l, session):
         session.query(Word).delete()
     else:
         session.query(Letter).delete()
-    
+
     dCount = len(l)
     popular = int(math.ceil(dCount * 0.05))
     rare = int(math.floor(dCount * 0.95))
     common_l = int(math.floor(dCount * 0.475))
     common_u = int(math.ceil(dCount * 0.525))
-    
+
     for rank, element, frequency in l:
         if rank <= popular:
             category = 'popular'
-        elif common_l <= rank <= common_u: 
+        elif common_l <= rank <= common_u:
             category = 'common'
         elif rare <= rank:
             category = 'rare'
@@ -245,16 +253,19 @@ def uploadSQL(t, l, session):
             else:
                 session.add(Letter(rank, element, category, frequency))
 
-def main(): 
-    session = Session()
+
+def main():
+    session = SQLSession()
     chunk_size = chunk()
+    print(chunk_size)
     spawnWorkers()
     s = initSocket()
     communicate(s)
     for t in ['word', 'letter']:
-        l = combineAndSort(t)
-        uploadSQL(t, l, session)
+        rows = combineAndSort(t)
+        uploadSQL(t, rows, session)
     session.commit()
+
 
 if __name__ == "__main__":
     main()

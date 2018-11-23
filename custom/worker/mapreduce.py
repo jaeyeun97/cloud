@@ -158,7 +158,8 @@ def letter_mapper(id, input, partitionNum, bucket):    #returns string[] outputN
     print("id {0} finished letter_map".format(id))
     return outputNames
 
-def letter_reducer(id, partition, bucket): # returns string output file name
+
+def letter_reducer(id, partition, bucket):  # returns string output file name
     # get input files
     session = Session(aws_access_key_id=AWS_ACCESS_KEY_ID,
                       aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
@@ -166,8 +167,7 @@ def letter_reducer(id, partition, bucket): # returns string output file name
     s3 = session.resource('s3')
     bucket = s3.Bucket(bucket_name)
     allFiles = map(lambda x: x.key, bucket.objects.all())
-    needFiles = filter(lambda x:
-        re.split('[_.]', x)[0] == 'letter' and re.split('[_.]', x)[1] == 'map' and int(re.split('[_.]', x)[3]) == partition, allFiles)
+    needFiles = filter(lambda x: re.split('[_.]', x)[0] == 'letter' and re.split('[_.]', x)[1] == 'map' and int(re.split('[_.]', x)[3]) == partition, allFiles)
 
     # put contents into a file
     temp = open('temp.txt', 'w+')
@@ -227,25 +227,25 @@ if __name__ == '__main__':
         s.send("worker {0} init".format(id).encode('utf-8'))
         # wait for job
         job = s.recv(4096).decode('utf-8')
+        print(job)
         jobToken = job.split(' ')
         if jobToken[0] == 'mapWord':
             s.send("worker {0} doing mapWord {1} {2}".format(id, jobToken[1], jobToken[2]).encode('utf-8'))
-            word_mapper(id,  jobToken[1], jobToken[2], bucket_name)
+            word_mapper(id,  jobToken[1], int(jobToken[2]), bucket_name)
             s.send("worker {0} done mapWord {1} {2}".format(id, jobToken[1], jobToken[2]).encode('utf-8'))
         elif jobToken[0] == 'reduceWord':
             s.send("worker {0} doing reduceWord {1}".format(id, jobToken[1]).encode('utf-8'))
-            word_reducer(id, jobToken[1], bucket_name)
+            word_reducer(id, int(jobToken[1]), bucket_name)
             s.send("worker {0} done reduceWord {1}".format(id, jobToken[1]).encode('utf-8'))
 
         elif jobToken[0] == 'mapLetter':
             s.send("worker {0} doing mapLetter {1} {2}".format(id, jobToken[1], jobToken[2]).encode('utf-8'))
-            letter_mapper(id,  jobToken[1], jobToken[2], bucket_name)
+            letter_mapper(id,  jobToken[1], int(jobToken[2]), bucket_name)
             s.send("worker {0} done mapLetter {1} {2}".format(id, jobToken[1], jobToken[2]).encode('utf-8'))
         elif jobToken[0] == 'reduceLetter':
             s.send("worker {0} doing reduceLetter {1}".format(id, jobToken[1]).encode('utf-8'))
-            letter_reducer(id, jobToken[1], bucket_name)
+            letter_reducer(id, int(jobToken[1]), bucket_name)
             s.send("worker {0} done reduceLetter {1}".format(id, jobToken[1]).encode('utf-8'))
-
         elif jobToken[0] == 'kill':
             break
         else:

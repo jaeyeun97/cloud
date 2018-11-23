@@ -51,14 +51,12 @@ config.load_incluster_config()
 api = client.CoreV1Api()
 
 # chunk/partition: 'unassigned', 'doing', 'done'
-mapStat = dict()
-reduceStat = dict()
-# woker number : {'map', 'reduce', 'idle'}
+mapWordStat = dict()
+reduceWordStat = dict()
+mapLetterStat = dict()
+reduceLetterStat = dict()
+# woker number : {'mapWord', 'reduceWord', 'mapLetter', 'reduceLetter', 'idle'}
 workerStat = dict()
-# locks
-mapLock = threading.Lock()
-reduceLock = threading.Lock()
-workerLock = threading.Lock()
 
 # get file, chunk it up, upload to s3
 def chunk():
@@ -76,7 +74,8 @@ def chunk():
         result = chunk[0:last_newline+1]
         chunk_name = "{}:{}".format(file_name, chunk_count)
         s3.put_object(Body=result, Bucket=bucket_name, Key=chunk_name)
-        mapStat[chunk_count] = 'unassigned'
+        mapWordStat[chunk_count] = 'unassigned'
+        mapLetterStat[chunk_count] = 'unassigned'
         if len(partial_chunk) == 0:
             break
         else:
@@ -102,8 +101,9 @@ def getWorkers():
 
 # infinitely communicate until job over
 
-def commWorker(conn):
+def communicate(s):
     while True:
+        conn, addr = s.accept()
         try:
             r = conn.recv(4096).decode('utf-8').split(' ') 
             if r[0] != 'worker':
@@ -117,48 +117,66 @@ def commWorker(conn):
             elif status == 'doing':
                 func_name = args[0]
                 workerStat[worker_num] = func_name
-                if func_name == 'map':
+                if func_name == 'mapWord':
                     chunk_count = int(args[1])
-                    mapStat[chunk_count] = 'doing'
-                elif func_name == 'reduce':
+                    mapWordStat[chunk_count] = 'doing'
+                elif func_name == 'reduceWord':
                     partition_count = int(args[1])
-                    reduceStat[partition_count] = 'doing'
+                    reduceWordStat[partition_count] = 'doing'
+                elif func_name == 'mapLetter':
+                    chunk_count = int(args[1])
+                    mapLetterStat[chunk_count] = 'doing'
+                elif func_name == 'reduceLetter':
+                    partition_count = int(args[1])
+                    reduceLetterStat[partition_count] = 'doing'
             elif status == 'done':
                 func_name = args[0]
                 workerStat[worker_num] = 'idle'
-                if func_name == 'map':
+                if func_name == 'mapWord':
                     chunk_count = int(args[1])
-                    mapStat[chunk_count] = 'done'
-                elif func_name == 'reduce':
+                    mapWordStat[chunk_count] = 'done'
+                elif func_name == 'reduceWord':
                     partition_count = int(args[1])
-                    reduceStat[partition_count] = 'done'
+                    reduceWordStat[partition_count] = 'done'
+                elif func_name == 'mapLetter':
+                    chunk_count = int(args[1])
+                    mapLetterStat[chunk_count] = 'done'
+                elif func_name == 'reduceLetter':
+                    partition_count = int(args[1])
+                    reduceLetterStat[partition_count] = 'done'
             if workerStat[worker_num] == 'idle':
                 # assign job or kill
-                mapLock.acquire()
-                reduceLock.acquire()
-                if 'unassigned' in mapStat.values():
-                    for k, v in mapStat.items():
+                if 'unassigned' in mapWordStat.values():
+                    for k, v in mapWordStat.items():
                         if v == 'unassigned':
                             #give map job
-                            conn.send("map {} {}".format(k, partition_num))
-                            print("assigned map for chunk {} to {}".format(k, worker_num))
+                            conn.send("mapWord {} {}".format(k, partition_num))
+                            print("assigned mapWord for chunk {} to {}".format(k, worker_num))
                             break
-                    mapLock.release()
-                    reduceLock.release()
-                elif 'unassigned' in reduceStat.values():
-                    for k, v in reduceStat.items():
+                elif 'unassigned' in reduceWordStat.values():
+                    for k, v in reduceWordStat.items():
                         if v == 'unassigned':
                             #give reduce job
-                            conn.send("reduce {}".format(k))
-                            print("assigned reduce for partition {} to {}".format(k, worker_num))
+                            conn.send("reduceWord {}".format(k))
+                            print("assigned reduceWord for partition {} to {}".format(k, worker_num))
                             break
-                    mapLock.release()
-                    reduceLock.release()
+                elif 'unassigned' in mapLetterStat.values():
+                    for k, v in mapLetterStat.items():
+                        if v == 'unassigned':
+                            #give map job
+                            conn.send("mapLetter {} {}".format(k, partition_num))
+                            print("assigned mapLetter for chunk {} to {}".format(k, worker_num))
+                            break
+                elif 'unassigned' in reduceLetterStat.values():
+                    for k, v in reduceLetterStat.items():
+                        if v == 'unassigned':
+                            #give reduce job
+                            conn.send("reduceLetter {}".format(k))
+                            print("assigned reduceLetter for partition {} to {}".format(k, worker_num))
+                            break
                 else:
                     conn.send("kill worker {}".format(worker_num))
                     print("just killed worker {}".format(worker_num))
-                    mapLock.release()
-                    reduceLock.release()
                     break
 
         except:
@@ -173,12 +191,6 @@ def initSocket():
     s.listen(10)
     return s
 
-def communicate(s):
-    while True:
-       conn, addr = s.accept()
-       threading.Thread(target=commWorker, args=(conn,)).start()
-       
-       
 
 # combine results
 def combineAndSort(t):

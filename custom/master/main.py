@@ -5,7 +5,7 @@ from kubernetes import client, config
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine, sessionmaker, Column, Integer, String
 
-engine = create_engine('sqlite:///:memory:', echo=True)
+engine = create_engine('mysql+pymysql://group2:group2sibal@group2dbinstance.cxezedslevku.eu-west-2.rds.amazonaws.com/sw777_CloudComputingCoursework', echo=True)
 Session = sessionmaker(bind=engine)
 Base = declarative_base()
 
@@ -215,8 +215,7 @@ def combineAndSort(t):
                 enumerate(sorted(sorted(odict.items(), key=lambda p: p[0]), key=lambda p: p[1]))))	
 
 
-def uploadSQL(t, l):
-    session = Session()
+def uploadSQL(t, l, session):
     if t == 'word':
         session.query(Word).delete()
     else:
@@ -240,8 +239,13 @@ def uploadSQL(t, l):
                 session.add(Word(rank, element, category, frequency))
             else:
                 session.add(Letter(rank, element, category, frequency))
-            
-    session.commit()
 
 def main(): 
+    session = Session()
     chunk_size = chunk()
+    s = initSocket()
+    communicate(s)
+    for t in ['word', 'letter']:
+        l = combineAndSort(t)
+        uploadSQL(t, l, session)
+    session.commit()

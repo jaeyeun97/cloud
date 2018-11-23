@@ -66,6 +66,7 @@ reduceLetterStat = dict()
 # woker number : {'mapWord', 'reduceWord', 'mapLetter', 'reduceLetter', 'idle'}
 workerStat = dict()
 
+
 # get file, chunk it up, upload to s3
 def chunk():
     s3 = boto3.client('s3', aws_access_key_id=key, aws_secret_access_key=secret)
@@ -108,12 +109,13 @@ def spawnWorkers():
         }).format())
         resp = api.create_namespaced_pod(body=conf, namespace="default")
 
+
 def getWorkers():
     resp = api.list_namespaced_pod(namespace='default', label_selector='group2-custom-worker')
     return resp.items
 
-# infinitely communicate until job over
 
+# infinitely communicate until job over
 def communicate(s):
     while True:
         conn, addr = s.accept()
@@ -126,7 +128,7 @@ def communicate(s):
             args = r[3:]
             if status == 'init':
                 workerStat[worker_num] = 'idle'
-                #workerStat will need to be locked as well for worker entering/leaving feature
+                # workerStat will need to be locked as well for worker entering/leaving feature
             elif status == 'doing':
                 func_name = args[0]
                 workerStat[worker_num] = func_name
@@ -162,28 +164,28 @@ def communicate(s):
                 if 'unassigned' in mapWordStat.values():
                     for k, v in mapWordStat.items():
                         if v == 'unassigned':
-                            #give map job
+                            # give map job
                             conn.send("mapWord {} {}".format(k, partition_num).encode('utf-8'))
                             print("assigned mapWord for chunk {} to {}".format(k, worker_num))
                             break
                 elif 'unassigned' in reduceWordStat.values():
                     for k, v in reduceWordStat.items():
                         if v == 'unassigned':
-                            #give reduce job
+                            # give reduce job
                             conn.send("reduceWord {}".format(k).encode('utf-8'))
                             print("assigned reduceWord for partition {} to {}".format(k, worker_num))
                             break
                 elif 'unassigned' in mapLetterStat.values():
                     for k, v in mapLetterStat.items():
                         if v == 'unassigned':
-                            #give map job
+                            # give map job
                             conn.send("mapLetter {} {}".format(k, partition_num).encode('utf-8'))
                             print("assigned mapLetter for chunk {} to {}".format(k, worker_num))
                             break
                 elif 'unassigned' in reduceLetterStat.values():
                     for k, v in reduceLetterStat.items():
                         if v == 'unassigned':
-                            #give reduce job
+                            # give reduce job
                             conn.send("reduceLetter {}".format(k).encode('utf-8'))
                             print("assigned reduceLetter for partition {} to {}".format(k, worker_num))
                             break
@@ -191,8 +193,7 @@ def communicate(s):
                     conn.send("kill worker {}".format(worker_num).encode('utf-8'))
                     print("just killed worker {}".format(worker_num))
                     break
-
-        except:
+        except Exception:
             print('Something gone wrong')
 
 
@@ -209,17 +210,17 @@ def initSocket():
 def combineAndSort(t):
     if t != 'word' and t != 'letter':
         return None
-    #get input files
+    # get input files
     session = Session(aws_access_key_id=key, aws_secret_access_key=secret, region_name=region)
     s3 = session.resource('s3')
     bucket = s3.Bucket(bucket_name)
-    allFiles = map(lambda x:x.key, bucket.objects.all())
-    needFiles = filter(lambda x : re.split('[_.]', x)[0] == t and re.split('[_.]', x)[0] == 'reduce', allFiles)
+    allFiles = map(lambda x: x.key, bucket.objects.all())
+    needFiles = filter(lambda x: re.split('[_.]', x)[0] == t and re.split('[_.]', x)[0] == 'reduce', allFiles)
 
-	#put contents into a dictionary
+    # put contents into a dictionary
     odict = {}
 
-	# merge files to sortedF.txt
+    # merge files to sortedF.txt
     for f in needFiles:
         rawLine = s3.Object(bucket_name, f).get()['Body'].readline().rstrip().split('\t')
         odict[rawLine[0]] = int(rawLine[1])

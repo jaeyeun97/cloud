@@ -63,20 +63,20 @@ def word_mapper(id, input, partitionNum, bucket):  # returns string[] outputName
     return outputNames
 
 
-def word_reducer(id, partition, bucket): #returns string output file name
-    #get input files
+def word_reducer(id, partition, bucket):  # returns string output file name
+    # get input files
     session = Session(aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key = AWS_SECRET_ACCESS_KEY,
-            region_name = 'eu-west-2')
+                      aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+                      region_name='eu-west-2')
     s3 = session.resource('s3')
     bucket = s3.Bucket(bucket_name)
-    allFiles = map(lambda x:x.key, bucket.objects.all())
-    needFiles = filter(lambda x : re.split('[_.]', x)[0] == 'word' and re.split('[_.]', x)[1] == 'map' and int(re.split('[_.]', x)[3]) == partition, allFiles)
+    allFiles = map(lambda x: x.key, bucket.objects.all())
+    needFiles = filter(lambda x: re.split('[_.]', x)[0] == 'word' and re.split('[_.]', x)[1] == 'map' and int(re.split('[_.]', x)[3]) == partition, allFiles)
 
-    #put contents into a file
+    # put contents into a file
     temp = open('temp.txt', 'w+')
 
-    #merge files to sortedF.txt
+    # merge files to sortedF.txt
     for f in needFiles:
         temp.write(s3.Object(bucket_name, f).get()['Body'].read())
 

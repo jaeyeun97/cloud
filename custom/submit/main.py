@@ -17,11 +17,12 @@ def uploadToS3(key, secret, file_url):
 
     filename = os.path.basename(file_url)
     with smart_open(file_url, 'rb') as l:
-        with smart_open('s3://{}/{}'.format(bucketName, filename), 'wb', 
-                s3_session=boto3.Session(aws_access_key_id=key, aws_secret_access_key=secret)) as r:
+        with smart_open('s3://{}/{}'.format(bucketName, filename), 'wb',
+                        s3_session=boto3.Session(aws_access_key_id=key, aws_secret_access_key=secret)) as r:
             r.write(l.read())
 
     return bucketName, filename
+
 
 def main(key, secret, file_url, chunk_size, worker_count):
     # read in configuration
@@ -29,7 +30,7 @@ def main(key, secret, file_url, chunk_size, worker_count):
 
     bucket_name, file_name = uploadToS3(key, secret, file_url)
     api = client.CoreV1Api()
-    
+
     # populate .yaml file
     with open('master.svc.yaml', 'r') as f:
         conf = yaml.load(f.read())
@@ -46,7 +47,7 @@ def main(key, secret, file_url, chunk_size, worker_count):
         }))
         resp = api.create_namespaced_pod(body=conf, namespace="default")
 
-   
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Group2 Custom Word Count Application. You should have a kubernetes configuration set up--check by execute `kubectl`')
     parser.add_argument('file_url', help='file url to count')
@@ -58,7 +59,7 @@ if __name__ == '__main__':
     username = None
     password = None
     key = None
-    secret = None 
+    secret = None
 
     with open(args.csv, 'r') as f:
         reader = csv.reader(f)

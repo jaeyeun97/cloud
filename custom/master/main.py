@@ -155,32 +155,32 @@ def communicate(s):
                     for k, v in mapWordStat.items():
                         if v == 'unassigned':
                             #give map job
-                            conn.send("mapWord {} {}".format(k, partition_num))
+                            conn.send("mapWord {} {}".format(k, partition_num).encode('utf-8'))
                             print("assigned mapWord for chunk {} to {}".format(k, worker_num))
                             break
                 elif 'unassigned' in reduceWordStat.values():
                     for k, v in reduceWordStat.items():
                         if v == 'unassigned':
                             #give reduce job
-                            conn.send("reduceWord {}".format(k))
+                            conn.send("reduceWord {}".format(k).encode('utf-8'))
                             print("assigned reduceWord for partition {} to {}".format(k, worker_num))
                             break
                 elif 'unassigned' in mapLetterStat.values():
                     for k, v in mapLetterStat.items():
                         if v == 'unassigned':
                             #give map job
-                            conn.send("mapLetter {} {}".format(k, partition_num))
+                            conn.send("mapLetter {} {}".format(k, partition_num).encode('utf-8'))
                             print("assigned mapLetter for chunk {} to {}".format(k, worker_num))
                             break
                 elif 'unassigned' in reduceLetterStat.values():
                     for k, v in reduceLetterStat.items():
                         if v == 'unassigned':
                             #give reduce job
-                            conn.send("reduceLetter {}".format(k))
+                            conn.send("reduceLetter {}".format(k).encode('utf-8'))
                             print("assigned reduceLetter for partition {} to {}".format(k, worker_num))
                             break
                 else:
-                    conn.send("kill worker {}".format(worker_num))
+                    conn.send("kill worker {}".format(worker_num).encode('utf-8'))
                     print("just killed worker {}".format(worker_num))
                     break
 

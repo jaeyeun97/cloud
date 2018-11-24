@@ -245,14 +245,17 @@ def uploadSQL(t, l, session):
     common_l = int(math.floor(dCount * 0.475))
     common_u = int(math.ceil(dCount * 0.525))
 
+    log.write("total count: {}\n".format(dCount))
+
     for rank, element, frequency in l:
+        category = None
         if rank <= popular:
             category = 'popular'
         elif common_l <= rank <= common_u:
             category = 'common'
         elif rare <= rank:
             category = 'rare'
-        if category:
+        if category is not None:
             if t == 'word':
                 session.add(Word(rank, element, category, frequency))
             else:

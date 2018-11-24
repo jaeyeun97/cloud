@@ -80,7 +80,7 @@ def word_reducer(id, partition, bucket):  # returns string output file name
     for f in needFiles:
         temp.write(s3.Object(bucket_name, f).get()['Body'].read().decode('utf-8'))
 
-    #sort local file
+    # sort local file
     temp.seek(0)
     temp_sorted = sorted(temp)
     sortedF = open('sorted.txt', 'w+')
@@ -88,7 +88,7 @@ def word_reducer(id, partition, bucket):  # returns string output file name
     temp.close()
     sortedF.seek(0)
 
-    #reduce
+    # reduce
     word = ""
     count = 0
     output = open('output.txt', 'w')
@@ -101,15 +101,17 @@ def word_reducer(id, partition, bucket):  # returns string output file name
                 output.write('{0}\t{1}\n'.format(word, count))
             word = kv[0]
             count = 1
-    output.write('{0}\t{1}\n'.format(word, count)) #last line
+    if word != "":
+        output.write('{0}\t{1}\n'.format(word, count))  # last line
     output.close()
 
-    #upload file to  s3
+    # upload file to  s3
     fname = 'word_reduce_{0}_{1}.txt'.format(id, partition)
     bucket.upload_file('output.txt', fname)
 
     print("finished word_reduce")
     return fname
+
 
 def letter_mapper(id, input, partitionNum, bucket):  # returns string[] outputNames
     print("Started LetterMap on chunk {} for {} partitions".format(input, partitionNum))
@@ -196,7 +198,8 @@ def letter_reducer(id, partition, bucket):  # returns string output file name
                 output.write('{0}\t{1}\n'.format(word, count))
             word = kv[0]
             count = 1
-    output.write('{0}\t{1}\n'.format(word, count))  # last line
+    if word != "":
+        output.write('{0}\t{1}\n'.format(word, count))  # last line
     output.close()
     sortedF.close()
 
@@ -220,6 +223,7 @@ master: kill worker x
 """
 if __name__ == '__main__':
     toSend = "worker {0} ready".format(id)
+    waitTime = 0.1
     while True:
         s = socket.socket()
         s.connect(((host_service, int(port_service))))
@@ -230,9 +234,12 @@ if __name__ == '__main__':
         job = s.recv(4096).decode('utf-8')
         # print("Received: {}".format(job))
         if len(job) == 0:
-            time.sleep(5)
+            time.sleep(waitTime)
+            waitTime *= 2
             toSend = "worker {0} ready".format(id)
             continue
+        else:
+            waitTime = 0.1
         jobToken = job.split(' ')
         if jobToken[0] == 'mapWord':
             word_mapper(id,  jobToken[1], int(jobToken[2]), bucket_name)

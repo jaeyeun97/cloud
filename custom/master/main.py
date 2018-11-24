@@ -61,9 +61,9 @@ api = client.CoreV1Api()
 
 # chunk/partition: 'unassigned', 'doing', 'done'
 mapWordStat = dict()
-reduceWordStat = dict()
+reduceWordStat = dict((i,'unassigned') for i in range(partition_num))
 mapLetterStat = dict()
-reduceLetterStat = dict()
+reduceLetterStat = dict((i,'unassigned') for i in range(partition_num))
 # woker number : {'mapWord', 'reduceWord', 'mapLetter', 'reduceLetter', 'idle'}
 workerStat = dict()
 
@@ -132,22 +132,6 @@ def communicate(s):
                 print("Received worker {} INIT, set workerStat to idle".format(worker_num))
                 workerStat[worker_num] = 'idle'
                 # workerStat will need to be locked as well for worker entering/leaving feature
-            elif status == 'doing':
-                print("Received worker {} DOING {}".format(worker_num, func_name))
-                func_name = args[0]
-                workerStat[worker_num] = func_name
-                if func_name == 'mapWord':
-                    chunk_count = int(args[1])
-                    mapWordStat[chunk_count] = 'doing'
-                elif func_name == 'reduceWord':
-                    partition_count = int(args[1])
-                    reduceWordStat[partition_count] = 'doing'
-                elif func_name == 'mapLetter':
-                    chunk_count = int(args[1])
-                    mapLetterStat[chunk_count] = 'doing'
-                elif func_name == 'reduceLetter':
-                    partition_count = int(args[1])
-                    reduceLetterStat[partition_count] = 'doing'
             elif status == 'done':
                 print("Received worker {} DOING {}".format(worker_num, func_name))
                 func_name = args[0]
@@ -171,6 +155,7 @@ def communicate(s):
                         if v == 'unassigned':
                             # give map job
                             conn.send("mapWord {} {}".format(k, partition_num).encode('utf-8'))
+                            mapWordStat[k] = 'doing'
                             print("assigned mapWord for chunk {} to {}".format(k, worker_num))
                             break
                 elif 'unassigned' in reduceWordStat.values():
@@ -178,6 +163,7 @@ def communicate(s):
                         if v == 'unassigned':
                             # give reduce job
                             conn.send("reduceWord {}".format(k).encode('utf-8'))
+                            reduceWordStat[k] = 'doing'
                             print("assigned reduceWord for partition {} to {}".format(k, worker_num))
                             break
                 elif 'unassigned' in mapLetterStat.values():
@@ -185,6 +171,7 @@ def communicate(s):
                         if v == 'unassigned':
                             # give map job
                             conn.send("mapLetter {} {}".format(k, partition_num).encode('utf-8'))
+                            mapLetterStat[k] = 'doing'
                             print("assigned mapLetter for chunk {} to {}".format(k, worker_num))
                             break
                 elif 'unassigned' in reduceLetterStat.values():
@@ -192,6 +179,7 @@ def communicate(s):
                         if v == 'unassigned':
                             # give reduce job
                             conn.send("reduceLetter {}".format(k).encode('utf-8'))
+                            reduceLetterStat[k] = 'doing'
                             print("assigned reduceLetter for partition {} to {}".format(k, worker_num))
                             break
                 else:

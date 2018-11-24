@@ -16,6 +16,8 @@ port_service = os.environ['GROUP2_CUSTOM_MASTER_SERVICE_PORT']
 
 
 def word_mapper(id, input, partitionNum, bucket):  # returns string[] outputNames
+    print("Started WordMap on chunk {} for {} partitions".format(input, partitionNum))
+
     # create temp files according to partitionNum
     files = list()
     for i in range(0, partitionNum):
@@ -56,11 +58,12 @@ def word_mapper(id, input, partitionNum, bucket):  # returns string[] outputName
         bucket.upload_file(fname, fname)
         outputNames.append(fname)
 
-    print("id {0} finished word_map".format(id))
+    print("finished word_map")
     return outputNames
 
 
 def word_reducer(id, partition, bucket):  # returns string output file name
+    print("Started WordReduce on partition {}".format(partition))
     # get input files
     session = Session(aws_access_key_id=AWS_ACCESS_KEY_ID,
                       aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
@@ -75,7 +78,7 @@ def word_reducer(id, partition, bucket):  # returns string output file name
 
     # merge files to sortedF.txt
     for f in needFiles:
-        temp.write(s3.Object(bucket_name, f).get()['Body'].read())
+        temp.write(s3.Object(bucket_name, f).get()['Body'].read().decode('utf-8'))
 
     #sort local file
     temp.seek(0)
@@ -105,10 +108,11 @@ def word_reducer(id, partition, bucket):  # returns string output file name
     fname = 'word_reduce_{0}_{1}.txt'.format(id, partition)
     bucket.upload_file('output.txt', fname)
 
-    print("id {0} finished word_reduce".format(id))
+    print("finished word_reduce")
     return fname
 
 def letter_mapper(id, input, partitionNum, bucket):    #returns string[] outputNames
+    print("Started LetterMap on chunk {} for {} partitions".format(input, partitionNum))
     #create temp files according to partitionNum
     files = list()
     for i in range(0, partitionNum):
@@ -152,11 +156,12 @@ def letter_mapper(id, input, partitionNum, bucket):    #returns string[] outputN
         bucket.upload_file(fname, fname)
         outputNames.append(fname)
 
-    print("id {0} finished letter_map".format(id))
+    print("finished letter_map")
     return outputNames
 
 
 def letter_reducer(id, partition, bucket):  # returns string output file name
+    print("Started LetterReduce on partition {}".format(partition))
     # get input files
     session = Session(aws_access_key_id=AWS_ACCESS_KEY_ID,
                       aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
@@ -171,7 +176,7 @@ def letter_reducer(id, partition, bucket):  # returns string output file name
 
     # merge files to sortedF.txt
     for f in needFiles:
-        temp.write(s3.Object(bucket_name, f).get()['Body'].read())
+        temp.write(s3.Object(bucket_name, f).get()['Body'].read().decode('utf-8'))
 
     # sort local file
     temp.seek(0)
@@ -201,7 +206,7 @@ def letter_reducer(id, partition, bucket):  # returns string output file name
     fname = 'letter_reduce_{0}_{1}.txt'.format(id, partition)
     bucket.upload_file('output.txt', fname)
 
-    print("id {0} finished letter_reduce".format(id))
+    print("finished letter_reduce")
     return fname
 
 
@@ -225,35 +230,27 @@ if __name__ == '__main__':
         s.send("worker {0} init".format(id).encode('utf-8'))
         # wait for job
         job = s.recv(4096).decode('utf-8')
-        print(job)
+        print("Received: {}".format(job))
         jobToken = job.split(' ')
         if jobToken[0] == 'mapWord':
-            msgDoing = "worker {0} doing mapWord {1} {2}".format(id, jobToken[1], jobToken[2])
-            print("sending :" + msgDoing)
-            s.send(msgDoing.encode('utf-8'))
             word_mapper(id,  jobToken[1], int(jobToken[2]), bucket_name)
             msgDone = "worker {0} done mapWord {1} {2}".format(id, jobToken[1], jobToken[2])
-            print("sending :" + msgDone)
+            print("sending: " + msgDone)
             s.send(msgDone.encode('utf-8'))
         elif jobToken[0] == 'reduceWord':
-            msgDoing = "worker {0} doing reduceWord {1}".format(id, jobToken[1])
-            s.send(msgDoing.encode('utf-8'))
             word_reducer(id, int(jobToken[1]), bucket_name)
             msgDone = "worker {0} done reduceWord {1}".format(id, jobToken[1])
+            print("sending: " + msgDone)
             s.send(msgDone.encode('utf-8'))
         elif jobToken[0] == 'mapLetter':
-            msgDoing = "worker {0} doing mapLetter {1} {2}".format(id, jobToken[1], jobToken[2])
-            print("sending :" + msgDoing)
-            s.send(msgDoing.encode('utf-8'))
             letter_mapper(id,  jobToken[1], int(jobToken[2]), bucket_name)
             msgDone = "worker {0} done mapLetter {1} {2}".format(id, jobToken[1], jobToken[2])
-            print("sending :" + msgDone)
+            print("sending: " + msgDone)
             s.send(msgDone.encode('utf-8'))
         elif jobToken[0] == 'reduceLetter':
-            msgDoing = "worker {0} doing reduceLetter {1}".format(id, jobToken[1])
-            s.send(msgDoing.encode('utf-8'))
             letter_reducer(id, int(jobToken[1]), bucket_name)
             msgDone = "worker {0} done reduceLetter {1}".format(id, jobToken[1])
+            print("sending: " + msgDone)
             s.send(msgDone.encode('utf-8'))
         elif jobToken[0] == 'kill':
             break

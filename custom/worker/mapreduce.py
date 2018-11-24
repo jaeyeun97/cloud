@@ -39,7 +39,6 @@ def word_mapper(id, input, partitionNum, bucket):  # returns string[] outputName
 
     # read input line by line
     for line in scanner:
-        print("line print: " + line.decode('utf-8'))
         # tokenize
         tokens = filter(lambda w: reduce(lambda x, y: x and y, (c in alphabets for c in w)),
                         filter(lambda x: len(x) > 0,
@@ -98,7 +97,7 @@ def word_reducer(id, partition, bucket):  # returns string output file name
         if word == kv[0]:
             count += 1
         else:
-            if(word != ""):
+            if word != "":
                 output.write('{0}\t{1}\n'.format(word, count))
             word = kv[0]
             count = 1
@@ -145,9 +144,6 @@ def letter_mapper(id, input, partitionNum, bucket):  # returns string[] outputNa
         for token in tokens:
             partition = hash(token) % partitionNum
             files[partition].write("{0}\t1\n".format(token))
-
-        # read next line
-        line = scanner.readline()
 
     # close files and upload to s3
     outputNames = list()
@@ -196,12 +192,13 @@ def letter_reducer(id, partition, bucket):  # returns string output file name
         if word == kv[0]:
             count += 1
         else:
-            if(word != ""):
+            if word != "":
                 output.write('{0}\t{1}\n'.format(word, count))
             word = kv[0]
             count = 1
     output.write('{0}\t{1}\n'.format(word, count))  # last line
     output.close()
+    sortedF.close()
 
     # upload file to  s3
     fname = 'letter_reduce_{0}_{1}.txt'.format(id, partition)
@@ -222,45 +219,41 @@ worker: worker x done reduce <partition_num>
 master: kill worker x
 """
 if __name__ == '__main__':
-    s = socket.socket()
-    s.connect(((host_service, int(port_service))))
-
+    toSend = "worker {0} ready".format(id)
     while True:
+        s = socket.socket()
+        s.connect(((host_service, int(port_service))))
         # say I'm ready
-        #print("sending: worker {0} init".format(id))
-        s.send("worker {0} init".format(id).encode('utf-8'))
+        print("sending : {}".format(toSend))
+        s.send(toSend.encode('utf-8'))
         # wait for job
         job = s.recv(4096).decode('utf-8')
-        print("Received: {}".format(job))
+        # print("Received: {}".format(job))
         if len(job) == 0:
+            time.sleep(5)
+            toSend = "worker {0} ready".format(id)
             continue
         jobToken = job.split(' ')
         if jobToken[0] == 'mapWord':
             word_mapper(id,  jobToken[1], int(jobToken[2]), bucket_name)
-            msgDone = "worker {0} done mapWord {1} {2}".format(id, jobToken[1], jobToken[2])
-            print("sending: " + msgDone)
-            s.send(msgDone.encode('utf-8'))
+            toSend = "worker {0} done mapWord {1} {2}".format(id, jobToken[1], jobToken[2])
         elif jobToken[0] == 'reduceWord':
             word_reducer(id, int(jobToken[1]), bucket_name)
-            msgDone = "worker {0} done reduceWord {1}".format(id, jobToken[1])
-            print("sending: " + msgDone)
-            s.send(msgDone.encode('utf-8'))
+            toSend = "worker {0} done reduceWord {1}".format(id, jobToken[1])
         elif jobToken[0] == 'mapLetter':
             letter_mapper(id,  jobToken[1], int(jobToken[2]), bucket_name)
-            msgDone = "worker {0} done mapLetter {1} {2}".format(id, jobToken[1], jobToken[2])
-            print("sending: " + msgDone)
-            s.send(msgDone.encode('utf-8'))
+            toSend = "worker {0} done mapLetter {1} {2}".format(id, jobToken[1], jobToken[2])
         elif jobToken[0] == 'reduceLetter':
             letter_reducer(id, int(jobToken[1]), bucket_name)
-            msgDone = "worker {0} done reduceLetter {1}".format(id, jobToken[1])
-            print("sending: " + msgDone)
-            s.send(msgDone.encode('utf-8'))
+            toSend = "worker {0} done reduceLetter {1}".format(id, jobToken[1])
         elif jobToken[0] == 'kill':
             break
         else:
             err = "Error: first word of message was not map/reduce/kill."
+            print(job)
             print(err)
             # maybe send error to master?
             break
+        s.close()
 
     print("done, I can kill myself!")

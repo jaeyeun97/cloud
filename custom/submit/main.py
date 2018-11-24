@@ -10,7 +10,8 @@ bucketName = 'group2-custom'
 
 
 def uploadToS3(key, secret, file_url):
-    s3 = boto3.client('s3', aws_access_key_id=key, aws_secret_access_key=secret)
+    session = boto3.Session(aws_access_key_id=key, aws_secret_access_key=secret)
+    s3 = session.client('s3')
     existing = [item['Name'] for item in s3.list_buckets()['Buckets']]
 
     if bucketName not in existing:
@@ -19,11 +20,14 @@ def uploadToS3(key, secret, file_url):
         })
         if resp['ResponseMetadata']['HTTPStatusCode'] == 200:
             print("New Bucket Created")
-
+    else:
+        res = session.resource('s3')
+        bucket = res.Bucket(bucketName)
+        bucket.objects.all().delete()
     filename = os.path.basename(file_url)
     with smart_open(file_url, 'rb') as local:
         with smart_open('s3://{}/{}'.format(bucketName, filename), 'wb',
-                        s3_session=boto3.Session(aws_access_key_id=key, aws_secret_access_key=secret)) as r:
+                        s3_session=session) as r:
             r.write(local.read())
 
     return bucketName, filename

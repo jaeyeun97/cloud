@@ -10,15 +10,17 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker
 from functools import reduce
+from smart_open import smart_open
 
 engine = create_engine('mysql+pymysql://group2:group2sibal@group2dbinstance.cxezedslevku.eu-west-2.rds.amazonaws.com/sw777_CloudComputingCoursework')
 SQLSession = sessionmaker(bind=engine)
 Base = declarative_base()
+log = open('log.txt', 'w+')
 
 
 class Word(Base):
     __tablename__ = 'words_custom'
-    rank = Column(Integer, primary_key=True)
+    rank = Column(Integer, primary_key=True, autoincrement=False)
     word = Column(String(40))
     category = Column(String(40))
     frequency = Column(Integer)
@@ -32,7 +34,7 @@ class Word(Base):
 
 class Letter(Base):
     __tablename__ = 'letters_custom'
-    rank = Column(Integer, primary_key=True)
+    rank = Column(Integer, primary_key=True, autoincrement=False)
     letter = Column(String(5))
     category = Column(String(40))
     frequency = Column(Integer)
@@ -65,7 +67,7 @@ mapWordStat = dict()
 reduceWordStat = dict((i, 'unassigned') for i in range(partition_num))
 mapLetterStat = dict()
 reduceLetterStat = dict((i, 'unassigned') for i in range(partition_num))
-# woker number : {'mapWord', 'reduceWord', 'mapLetter', 'reduceLetter', 'idle', 'dead'}
+# woker number : {'busy', 'idle', 'dead'}
 workerStat = dict()
 
 
@@ -84,8 +86,7 @@ def chunk():
         chunk = partial_chunk + new_read
         last_newline = chunk.rfind(newline)
         result = chunk[0:last_newline+1]
-        print("Chunk Count {}".format(chunk_count))
-        print("Result {}".format(result.decode('utf-8')))
+        log.write("Chunk Count {}\n".format(chunk_count))
         chunk_name = "{}:{}".format(file_name, chunk_count)
         s3.put_object(Body=result, Bucket=bucket_name, Key=chunk_name)
         mapWordStat[chunk_name] = 'unassigned'
@@ -122,81 +123,81 @@ def getWorkers():
 def communicate(s):
     while True:
         conn, addr = s.accept()
-        try:
-            r = conn.recv(4096).decode('utf-8').split(' ')
-            if r[0] != 'worker':
-                continue
-            worker_num = int(r[1])
-            status = r[2]
-            args = r[3:]
-            if status == 'init':
-                print("Received worker {} INIT, set workerStat to idle".format(worker_num))
-                workerStat[worker_num] = 'idle'
-                # workerStat will need to be locked as well for worker entering/leaving feature
-            elif status == 'done':
-                print("Received worker {} DOING {}".format(worker_num, func_name))
-                func_name = args[0]
-                workerStat[worker_num] = 'idle'
-                if func_name == 'mapWord':
-                    chunk_count = int(args[1])
-                    mapWordStat[chunk_count] = 'done'
-                elif func_name == 'reduceWord':
-                    partition_count = int(args[1])
-                    reduceWordStat[partition_count] = 'done'
-                elif func_name == 'mapLetter':
-                    chunk_count = int(args[1])
-                    mapLetterStat[chunk_count] = 'done'
-                elif func_name == 'reduceLetter':
-                    partition_count = int(args[1])
-                    reduceLetterStat[partition_count] = 'done'
-            if workerStat[worker_num] == 'idle':
-                # assign job or kill
-                if 'unassigned' in mapWordStat.values():
-                    for k, v in mapWordStat.items():
-                        if v == 'unassigned':
-                            # give map job
-                            conn.send("mapWord {} {}".format(k, partition_num).encode('utf-8'))
-                            mapWordStat[k] = 'doing'
-                            print("assigned mapWord for chunk {} to {}".format(k, worker_num))
-                            break
-                elif 'doing' not in mapWordStat.values() and 'unassigned' in reduceWordStat.values():
-                    for k, v in reduceWordStat.items():
-                        if v == 'unassigned':
-                            # give reduce job
-                            conn.send("reduceWord {}".format(k).encode('utf-8'))
-                            reduceWordStat[k] = 'doing'
-                            print("assigned reduceWord for partition {} to {}".format(k, worker_num))
-                            break
-                elif 'unassigned' in mapLetterStat.values():
-                    for k, v in mapLetterStat.items():
-                        if v == 'unassigned':
-                            # give map job
-                            conn.send("mapLetter {} {}".format(k, partition_num).encode('utf-8'))
-                            mapLetterStat[k] = 'doing'
-                            print("assigned mapLetter for chunk {} to {}".format(k, worker_num))
-                            break
-                elif 'doing' not in mapLetterStat.values() and 'unassigned' in reduceLetterStat.values():
-                    for k, v in reduceLetterStat.items():
-                        if v == 'unassigned':
-                            # give reduce job
-                            conn.send("reduceLetter {}".format(k).encode('utf-8'))
-                            reduceLetterStat[k] = 'doing'
-                            print("assigned reduceLetter for partition {} to {}".format(k, worker_num))
-                            break
-                else:
-                    if reduce(lambda x, y: x and y, (v == 'done' for v in reduceWordStat.values())) \
-                            and reduce(lambda x, y: x and y, (v == 'done' for v in reduceLetterStat.values())):
-                        conn.send("kill worker {}".format(worker_num).encode('utf-8'))
-                        workerStat[worker_num] == 'dead'
-                        print("just killed worker {}".format(worker_num))
+        r = conn.recv(4096).decode('utf-8').split(' ')
+        log.write('recieved {}\n'.format(r))
+        if r[0] != 'worker':
+            continue
+        worker_num = int(r[1])
+        status = r[2]
+        args = r[3:]
+        if status == 'ready':
+            log.write("Received worker {} READY, set workerStat to idle\n".format(worker_num))
+            workerStat[worker_num] = 'idle'
+            # workerStat will need to be locked as well for worker entering/leaving feature
+        elif status == 'done':
+            func_name = args[0]
+            log.write("Received worker {} DOING {}\n".format(worker_num, func_name))
+            workerStat[worker_num] = 'idle'
+            if func_name == 'mapWord':
+                mapWordStat[args[1]] = 'done'
+            elif func_name == 'reduceWord':
+                reduceWordStat[int(args[1])] = 'done'
+            elif func_name == 'mapLetter':
+                mapLetterStat[args[1]] = 'done'
+            elif func_name == 'reduceLetter':
+                reduceLetterStat[int(args[1])] = 'done'
+
+        if workerStat[worker_num] == 'idle':
+            # assign job or kill
+            if 'unassigned' in mapWordStat.values():
+                for k, v in mapWordStat.items():
+                    if v == 'unassigned':
+                        # give map job
+                        conn.send("mapWord {} {}".format(k, partition_num).encode('utf-8'))
+                        workerStat[worker_num] = 'busy'
+                        mapWordStat[k] = 'doing'
+                        log.write("assigned mapWord for chunk {} to {}\n".format(k, worker_num))
                         break
-        except Exception:
-            print('Something gone wrong')
-        finally:
-            conn.close()
-            if reduce(lambda x, y: x and y, (v == 'dead' for v in workerStat.values())):
-                break
-            print(workerStat)
+            elif 'doing' not in mapWordStat.values() and 'unassigned' in reduceWordStat.values():
+                for k, v in reduceWordStat.items():
+                    if v == 'unassigned':
+                        # give reduce job
+                        conn.send("reduceWord {}".format(k).encode('utf-8'))
+                        workerStat[worker_num] = 'busy'
+                        reduceWordStat[k] = 'doing'
+                        log.write("assigned reduceWord for partition {} to {}\n".format(k, worker_num))
+                        break
+            elif 'unassigned' in mapLetterStat.values():
+                for k, v in mapLetterStat.items():
+                    if v == 'unassigned':
+                        # give map job
+                        conn.send("mapLetter {} {}".format(k, partition_num).encode('utf-8'))
+                        workerStat[worker_num] = 'busy'
+                        mapLetterStat[k] = 'doing'
+                        log.write("assigned mapLetter for chunk {} to {}\n".format(k, worker_num))
+                        break
+            elif 'doing' not in mapLetterStat.values() and 'unassigned' in reduceLetterStat.values():
+                for k, v in reduceLetterStat.items():
+                    if v == 'unassigned':
+                        # give reduce job
+                        conn.send("reduceLetter {}".format(k).encode('utf-8'))
+                        workerStat[worker_num] = 'busy'
+                        reduceLetterStat[k] = 'doing'
+                        log.write("assigned reduceLetter for partition {} to {}\n".format(k, worker_num))
+                        break
+            else:
+                if reduce(lambda x, y: x and y, (v == 'done' for v in reduceWordStat.values())) \
+                        and reduce(lambda x, y: x and y, (v == 'done' for v in reduceLetterStat.values())):
+                    conn.send("kill worker {}".format(worker_num).encode('utf-8'))
+                    workerStat[worker_num] = 'dead'
+                    log.write("just killed worker {}\n".format(worker_num))
+        conn.close()
+        if len(workerStat) > 0 and reduce(lambda x, y: x and y, (v == 'dead' for v in workerStat.values())):
+            break
+        log.write('current workerStat: {}\n'.format(str(workerStat)))
+        log.write('current mapWordStat: {}\n'.format(str(mapWordStat)))
+        log.write('current reduceWordStat: {}\n'.format(str(reduceWordStat)))
+        log.flush()
 
 
 def initSocket():
@@ -217,18 +218,19 @@ def combineAndSort(t):
     s3 = session.resource('s3')
     bucket = s3.Bucket(bucket_name)
     allFiles = map(lambda x: x.key, bucket.objects.all())
-    needFiles = filter(lambda x: re.split('[_.]', x)[0] == t and re.split('[_.]', x)[0] == 'reduce', allFiles)
+    needFiles = filter(lambda x: re.split('[_.]', x)[0] == t and re.split('[_.]', x)[1] == 'reduce', allFiles)
 
     # put contents into a dictionary
     odict = {}
 
     # merge files to sortedF.txt
     for f in needFiles:
-        rawLine = s3.Object(bucket_name, f).get()['Body'].readline().rstrip().split('\t')
-        odict[rawLine[0]] = int(rawLine[1])
+        scanner = s3.Object(bucket_name, f).get()['Body'].iter_lines()
+        for line in scanner:
+            kv = line.decode('utf-8').rstrip().split('\t')
+            odict[kv[0]] = int(kv[1])
 
-    return list(map(lambda p: (p[0]+1, p[1][0], p[1][1]),
-                enumerate(sorted(sorted(odict.items(), key=lambda p: p[0]), key=lambda p: p[1]))))
+    return list((p[0]+1, p[1][0], p[1][1]) for p in enumerate(sorted(sorted(odict.items(), key=lambda p: p[0]), key=lambda p: p[1], reverse=True)))
 
 
 def uploadSQL(t, l, session):
@@ -260,14 +262,23 @@ def uploadSQL(t, l, session):
 def main():
     session = SQLSession()
     chunk_size = chunk()
-    print(chunk_size)
+    log.write('Spawning workers\n')
+    log.flush()
     spawnWorkers()
     s = initSocket()
     communicate(s)
+    log.write('Done with Nodes, going to SQL\n')
+    log.flush()
     for t in ['word', 'letter']:
         rows = combineAndSort(t)
+        log.write('-------- {} --------\n'.format(t))
+        log.write('rows: {}\n'.format(rows))
         uploadSQL(t, rows, session)
     session.commit()
+    log.close()
+    with smart_open('log.txt', 'rb') as remote_log:
+        s3 = boto3.client('s3', aws_access_key_id=key, aws_secret_access_key=secret)
+        s3.put_object(Body=remote_log.read(), Bucket=bucket_name, Key='log.txt')
 
 
 if __name__ == "__main__":

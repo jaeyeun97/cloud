@@ -5,6 +5,7 @@ metadata:
   labels:
     run: group2-custom-master
 spec:
+  restartPolicy: Never
   containers:
   - name: wordcount-master
     image: {master_image}

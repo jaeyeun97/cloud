@@ -5,6 +5,7 @@ metadata:
   labels:
     run: group2-custom-worker
 spec:
+  restartPolicy: Never
   containers:
   - name: wordcount-worker
     image: {worker_image}

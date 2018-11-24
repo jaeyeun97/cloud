@@ -1,6 +1,7 @@
 import re
 import os
 import socket
+import time
 from boto3.session import Session
 from functools import reduce
 
@@ -38,7 +39,7 @@ def word_mapper(id, input, partitionNum, bucket):  # returns string[] outputName
 
     # read input line by line
     for line in scanner:
-        print ("line print: " + line.decode('utf-8'))
+        print("line print: " + line.decode('utf-8'))
         # tokenize
         tokens = filter(lambda w: reduce(lambda x, y: x and y, (c in alphabets for c in w)),
                         filter(lambda x: len(x) > 0,
@@ -111,44 +112,44 @@ def word_reducer(id, partition, bucket):  # returns string output file name
     print("finished word_reduce")
     return fname
 
-def letter_mapper(id, input, partitionNum, bucket):    #returns string[] outputNames
+def letter_mapper(id, input, partitionNum, bucket):  # returns string[] outputNames
     print("Started LetterMap on chunk {} for {} partitions".format(input, partitionNum))
-    #create temp files according to partitionNum
+    # create temp files according to partitionNum
     files = list()
     for i in range(0, partitionNum):
         f = open("letter_map_{0}_{1}.txt".format(id, i), 'w+')
         files.append(f)
 
-    #Connect to s3 and get input
+    # Connect to s3 and get input
     session = Session(aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key = AWS_SECRET_ACCESS_KEY,
-            region_name = 'eu-west-2')
+                      aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+                      region_name='eu-west-2')
     s3 = session.resource('s3')
     bucket = s3.Bucket(bucket_name)
     scanner = s3.Object(bucket_name, input).get()['Body'].iter_lines()
 
-    #for tokenization
+    # for tokenization
     delimiters = u'[\n\t ,\.;:?!"\(\)\[\]{}\-_]+'
     alphabets = u'abcdefghijklmnopqrstuvwxyz'
 
-    #read input line by line
+    # read input line by line
     for line in scanner:
         print("printing line for lettermap: " + line.decode('utf-8'))
-        #tokenize
-        tokens = filter(lambda w: reduce(lambda x,y: x and y, (c in alphabets for c in w)),
-                                filter(lambda x:len(x)>0,
-                                map(lambda x:x.lower(),
-                                list(line.decode('utf-8')))))
+        # tokenize
+        tokens = filter(lambda w: reduce(lambda x, y: x and y, (c in alphabets for c in w)),
+                        filter(lambda x: len(x) > 0,
+                               map(lambda x: x.lower(),
+                                   list(line.decode('utf-8')))))
 
-        #write tokens as (token, 1) to corresponding file
+        # write tokens as (token, 1) to corresponding file
         for token in tokens:
             partition = hash(token) % partitionNum
             files[partition].write("{0}\t1\n".format(token))
 
-        #read next line
+        # read next line
         line = scanner.readline()
 
-    #close files and upload to s3
+    # close files and upload to s3
     outputNames = list()
     for i in range(0, partitionNum):
         files[i].close()
@@ -226,11 +227,13 @@ if __name__ == '__main__':
 
     while True:
         # say I'm ready
-        print("sending: worker {0} init".format(id))
+        #print("sending: worker {0} init".format(id))
         s.send("worker {0} init".format(id).encode('utf-8'))
         # wait for job
         job = s.recv(4096).decode('utf-8')
         print("Received: {}".format(job))
+        if len(job) == 0:
+            continue
         jobToken = job.split(' ')
         if jobToken[0] == 'mapWord':
             word_mapper(id,  jobToken[1], int(jobToken[2]), bucket_name)
@@ -255,8 +258,9 @@ if __name__ == '__main__':
         elif jobToken[0] == 'kill':
             break
         else:
-            err = "Error: some communication error took place"
+            err = "Error: first word of message was not map/reduce/kill."
             print(err)
             # maybe send error to master?
+            break
 
-print("done, I can kill myself!")
+    print("done, I can kill myself!")

@@ -9,6 +9,7 @@ from kubernetes import client, config
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker
+from functools import reduce
 
 engine = create_engine('mysql+pymysql://group2:group2sibal@group2dbinstance.cxezedslevku.eu-west-2.rds.amazonaws.com/sw777_CloudComputingCoursework')
 SQLSession = sessionmaker(bind=engine)
@@ -61,10 +62,10 @@ api = client.CoreV1Api()
 
 # chunk/partition: 'unassigned', 'doing', 'done'
 mapWordStat = dict()
-reduceWordStat = dict((i,'unassigned') for i in range(partition_num))
+reduceWordStat = dict((i, 'unassigned') for i in range(partition_num))
 mapLetterStat = dict()
-reduceLetterStat = dict((i,'unassigned') for i in range(partition_num))
-# woker number : {'mapWord', 'reduceWord', 'mapLetter', 'reduceLetter', 'idle'}
+reduceLetterStat = dict((i, 'unassigned') for i in range(partition_num))
+# woker number : {'mapWord', 'reduceWord', 'mapLetter', 'reduceLetter', 'idle', 'dead'}
 workerStat = dict()
 
 
@@ -158,7 +159,7 @@ def communicate(s):
                             mapWordStat[k] = 'doing'
                             print("assigned mapWord for chunk {} to {}".format(k, worker_num))
                             break
-                elif 'unassigned' in reduceWordStat.values():
+                elif 'doing' not in mapWordStat.values() and 'unassigned' in reduceWordStat.values():
                     for k, v in reduceWordStat.items():
                         if v == 'unassigned':
                             # give reduce job
@@ -174,7 +175,7 @@ def communicate(s):
                             mapLetterStat[k] = 'doing'
                             print("assigned mapLetter for chunk {} to {}".format(k, worker_num))
                             break
-                elif 'unassigned' in reduceLetterStat.values():
+                elif 'doing' not in mapLetterStat.values() and 'unassigned' in reduceLetterStat.values():
                     for k, v in reduceLetterStat.items():
                         if v == 'unassigned':
                             # give reduce job
@@ -183,13 +184,19 @@ def communicate(s):
                             print("assigned reduceLetter for partition {} to {}".format(k, worker_num))
                             break
                 else:
-                    conn.send("kill worker {}".format(worker_num).encode('utf-8'))
-                    print("just killed worker {}".format(worker_num))
-                    break
+                    if reduce(lambda x, y: x and y, (v == 'done' for v in reduceWordStat.values())) \
+                            and reduce(lambda x, y: x and y, (v == 'done' for v in reduceLetterStat.values())):
+                        conn.send("kill worker {}".format(worker_num).encode('utf-8'))
+                        workerStat[worker_num] == 'dead'
+                        print("just killed worker {}".format(worker_num))
+                        break
         except Exception:
             print('Something gone wrong')
         finally:
             conn.close()
+            if reduce(lambda x, y: x and y, (v == 'dead' for v in workerStat.values())):
+                break
+            print(workerStat)
 
 
 def initSocket():
@@ -197,7 +204,7 @@ def initSocket():
     host = socket.gethostname()
     port = 8000
     s.bind((host, port))
-    s.listen(10)
+    s.listen(20)
     return s
 
 

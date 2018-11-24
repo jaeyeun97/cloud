@@ -28,16 +28,15 @@ def word_mapper(id, input, partitionNum, bucket):  # returns string[] outputName
                       region_name='eu-west-2')
     s3 = session.resource('s3')
     bucket = s3.Bucket(bucket_name)
-    scanner = s3.Object(bucket_name, input).get()['Body']._raw_stream
-    line = scanner.readline()
+    scanner = s3.Object(bucket_name, input).get()['Body'].iter_lines()
 
     # for tokenization
     delimiters = u'[\n\t ,\.;:?!"\(\)\[\]{}\-_]+'
     alphabets = u'abcdefghijklmnopqrstuvwxyz'
 
     # read input line by line
-    while line != "":
-        print ("line print: " + line)
+    for line in scanner:
+        print ("line print: " + line.decode('utf-8'))
         # tokenize
         tokens = filter(lambda w: reduce(lambda x, y: x and y, (c in alphabets for c in w)),
                         filter(lambda x: len(x) > 0,
@@ -48,9 +47,6 @@ def word_mapper(id, input, partitionNum, bucket):  # returns string[] outputName
         for token in tokens:
             partition = hash(token) % partitionNum
             files[partition].write("{0}\t1\n".format(token))
-
-        # read next line
-        line = scanner.readline()
 
     # close files and upload to s3
     outputNames = list()
@@ -125,15 +121,15 @@ def letter_mapper(id, input, partitionNum, bucket):    #returns string[] outputN
             region_name = 'eu-west-2')
     s3 = session.resource('s3')
     bucket = s3.Bucket(bucket_name)
-    scanner = s3.Object(bucket_name, input).get()['Body']._raw_stream
-    line = scanner.readline()
+    scanner = s3.Object(bucket_name, input).get()['Body'].iter_lines()
 
     #for tokenization
     delimiters = u'[\n\t ,\.;:?!"\(\)\[\]{}\-_]+'
     alphabets = u'abcdefghijklmnopqrstuvwxyz'
 
     #read input line by line
-    while( line != ""):
+    for line in scanner:
+        print("printing line for lettermap: " + line.decode('utf-8'))
         #tokenize
         tokens = filter(lambda w: reduce(lambda x,y: x and y, (c in alphabets for c in w)),
                                 filter(lambda x:len(x)>0,
@@ -232,23 +228,33 @@ if __name__ == '__main__':
         print(job)
         jobToken = job.split(' ')
         if jobToken[0] == 'mapWord':
-
-            s.send("worker {0} doing mapWord {1} {2}".format(id, jobToken[1], jobToken[2]).encode('utf-8'))
+            msgDoing = "worker {0} doing mapWord {1} {2}".format(id, jobToken[1], jobToken[2])
+            print("sending :" + msgDoing)
+            s.send(msgDoing.encode('utf-8'))
             word_mapper(id,  jobToken[1], int(jobToken[2]), bucket_name)
-            s.send("worker {0} done mapWord {1} {2}".format(id, jobToken[1], jobToken[2]).encode('utf-8'))
+            msgDone = "worker {0} done mapWord {1} {2}".format(id, jobToken[1], jobToken[2])
+            print("sending :" + msgDone)
+            s.send(msgDone.encode('utf-8'))
         elif jobToken[0] == 'reduceWord':
-            s.send("worker {0} doing reduceWord {1}".format(id, jobToken[1]).encode('utf-8'))
+            msgDoing = "worker {0} doing reduceWord {1}".format(id, jobToken[1])
+            s.send(msgDoing.encode('utf-8'))
             word_reducer(id, int(jobToken[1]), bucket_name)
-            s.send("worker {0} done reduceWord {1}".format(id, jobToken[1]).encode('utf-8'))
-
+            msgDone = "worker {0} done reduceWord {1}".format(id, jobToken[1])
+            s.send(msgDone.encode('utf-8'))
         elif jobToken[0] == 'mapLetter':
-            s.send("worker {0} doing mapLetter {1} {2}".format(id, jobToken[1], jobToken[2]).encode('utf-8'))
+            msgDoing = "worker {0} doing mapLetter {1} {2}".format(id, jobToken[1], jobToken[2])
+            print("sending :" + msgDoing)
+            s.send(msgDoing.encode('utf-8'))
             letter_mapper(id,  jobToken[1], int(jobToken[2]), bucket_name)
-            s.send("worker {0} done mapLetter {1} {2}".format(id, jobToken[1], jobToken[2]).encode('utf-8'))
+            msgDone = "worker {0} done mapLetter {1} {2}".format(id, jobToken[1], jobToken[2])
+            print("sending :" + msgDone)
+            s.send(msgDone.encode('utf-8'))
         elif jobToken[0] == 'reduceLetter':
-            s.send("worker {0} doing reduceLetter {1}".format(id, jobToken[1]).encode('utf-8'))
+            msgDoing = "worker {0} doing reduceLetter {1}".format(id, jobToken[1])
+            s.send(msgDoing.encode('utf-8'))
             letter_reducer(id, int(jobToken[1]), bucket_name)
-            s.send("worker {0} done reduceLetter {1}".format(id, jobToken[1]).encode('utf-8'))
+            msgDone = "worker {0} done reduceLetter {1}".format(id, jobToken[1])
+            s.send(msgDone.encode('utf-8'))
         elif jobToken[0] == 'kill':
             break
         else:

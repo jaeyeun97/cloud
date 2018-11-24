@@ -22,4 +22,4 @@ spec:
     - name: WORKER_NUM
       value: '{worker_num}'
     - name: PYTHONUNBUFFERED
-      value: 0
+      value: '0'

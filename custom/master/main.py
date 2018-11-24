@@ -129,9 +129,11 @@ def communicate(s):
             status = r[2]
             args = r[3:]
             if status == 'init':
+                print("Received worker {} INIT, set workerStat to idle".format(worker_num))
                 workerStat[worker_num] = 'idle'
                 # workerStat will need to be locked as well for worker entering/leaving feature
             elif status == 'doing':
+                print("Received worker {} DOING {}".format(worker_num, func_name))
                 func_name = args[0]
                 workerStat[worker_num] = func_name
                 if func_name == 'mapWord':
@@ -147,6 +149,7 @@ def communicate(s):
                     partition_count = int(args[1])
                     reduceLetterStat[partition_count] = 'doing'
             elif status == 'done':
+                print("Received worker {} DOING {}".format(worker_num, func_name))
                 func_name = args[0]
                 workerStat[worker_num] = 'idle'
                 if func_name == 'mapWord':
@@ -197,6 +200,8 @@ def communicate(s):
                     break
         except Exception:
             print('Something gone wrong')
+        finally:
+            conn.close()
 
 
 def initSocket():

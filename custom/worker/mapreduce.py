@@ -19,10 +19,12 @@ port_service = os.environ['GROUP2_CUSTOM_MASTER_SERVICE_PORT']
 def word_mapper(id, input, partitionNum, bucket):  # returns string[] outputNames
     print("Started WordMap on chunk {} for {} partitions".format(input, partitionNum))
 
+    chunk = int(input.split(':')[1])
+
     # create temp files according to partitionNum
     files = list()
     for i in range(0, partitionNum):
-        f = open("word_map_{0}_{1}.txt".format(id, i), 'w+')
+        f = open("word_map_{0}_{1}.txt".format(chunk, i), 'w+')
         files.append(f)
 
     # Connect to s3 and get input
@@ -54,7 +56,7 @@ def word_mapper(id, input, partitionNum, bucket):  # returns string[] outputName
     outputNames = list()
     for i in range(0, partitionNum):
         files[i].close()
-        fname = "word_map_{0}_{1}.txt".format(id, i)
+        fname = "word_map_{0}_{1}.txt".format(chunk, i)
         bucket.upload_file(fname, fname)
         outputNames.append(fname)
 
@@ -115,10 +117,12 @@ def word_reducer(id, partition, bucket):  # returns string output file name
 
 def letter_mapper(id, input, partitionNum, bucket):  # returns string[] outputNames
     print("Started LetterMap on chunk {} for {} partitions".format(input, partitionNum))
+
+    chunk = int(input.split(':')[1])
     # create temp files according to partitionNum
     files = list()
     for i in range(0, partitionNum):
-        f = open("letter_map_{0}_{1}.txt".format(id, i), 'w+')
+        f = open("letter_map_{0}_{1}.txt".format(chunk, i), 'w+')
         files.append(f)
 
     # Connect to s3 and get input
@@ -151,7 +155,7 @@ def letter_mapper(id, input, partitionNum, bucket):  # returns string[] outputNa
     outputNames = list()
     for i in range(0, partitionNum):
         files[i].close()
-        fname = "letter_map_{0}_{1}.txt".format(id, i)
+        fname = "letter_map_{0}_{1}.txt".format(chunk, i)
         bucket.upload_file(fname, fname)
         outputNames.append(fname)
 

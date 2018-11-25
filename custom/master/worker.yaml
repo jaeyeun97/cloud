@@ -24,3 +24,5 @@ spec:
       value: '{worker_num}'
     - name: PYTHONUNBUFFERED
       value: '0'
+    - name: PYTHONHASHSEED
+      value: '1130'

@@ -2,9 +2,12 @@ import re
 import os
 import socket
 import time
+import boto3
 from boto3.session import Session
 from functools import reduce
+from smart_open import smart_open
 
+log = open('log.txt', 'w+')
 
 # import from environment
 AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
@@ -228,43 +231,52 @@ master: kill worker x
 if __name__ == '__main__':
     toSend = "worker {0} ready".format(id)
     waitTime = 0.1
-    while True:
-        s = socket.socket()
-        s.connect(((host_service, int(port_service))))
-        # say I'm ready
-        print("sending : {}".format(toSend))
-        s.send(toSend.encode('utf-8'))
-        # wait for job
-        job = s.recv(4096).decode('utf-8')
-        # print("Received: {}".format(job))
-        if len(job) == 0:
-            time.sleep(waitTime)
-            waitTime *= 2
-            toSend = "worker {0} ready".format(id)
-            continue
-        else:
-            waitTime = 0.1
-        jobToken = job.split(' ')
-        if jobToken[0] == 'mapWord':
-            word_mapper(id,  jobToken[1], int(jobToken[2]), bucket_name)
-            toSend = "worker {0} done mapWord {1} {2}".format(id, jobToken[1], jobToken[2])
-        elif jobToken[0] == 'reduceWord':
-            word_reducer(id, int(jobToken[1]), bucket_name)
-            toSend = "worker {0} done reduceWord {1}".format(id, jobToken[1])
-        elif jobToken[0] == 'mapLetter':
-            letter_mapper(id,  jobToken[1], int(jobToken[2]), bucket_name)
-            toSend = "worker {0} done mapLetter {1} {2}".format(id, jobToken[1], jobToken[2])
-        elif jobToken[0] == 'reduceLetter':
-            letter_reducer(id, int(jobToken[1]), bucket_name)
-            toSend = "worker {0} done reduceLetter {1}".format(id, jobToken[1])
-        elif jobToken[0] == 'kill':
-            break
-        else:
-            err = "Error: first word of message was not map/reduce/kill."
-            print(job)
-            print(err)
-            # maybe send error to master?
-            break
-        s.close()
+    try:
+        while True:
+            s = socket.socket()
+            s.connect(((host_service, int(port_service))))
+            # say I'm ready
+            print("sending : {}".format(toSend))
+            s.send(toSend.encode('utf-8'))
+            # wait for job
+            job = s.recv(4096).decode('utf-8')
+            # print("Received: {}".format(job))
+            if len(job) == 0:
+                time.sleep(waitTime)
+                waitTime *= 2
+                toSend = "worker {0} ready".format(id)
+                continue
+            else:
+                waitTime = 0.1
+            jobToken = job.split(' ')
+            if jobToken[0] == 'mapWord':
+                word_mapper(id,  jobToken[1], int(jobToken[2]), bucket_name)
+                toSend = "worker {0} done mapWord {1} {2}".format(id, jobToken[1], jobToken[2])
+            elif jobToken[0] == 'reduceWord':
+                word_reducer(id, int(jobToken[1]), bucket_name)
+                toSend = "worker {0} done reduceWord {1}".format(id, jobToken[1])
+            elif jobToken[0] == 'mapLetter':
+                letter_mapper(id,  jobToken[1], int(jobToken[2]), bucket_name)
+                toSend = "worker {0} done mapLetter {1} {2}".format(id, jobToken[1], jobToken[2])
+            elif jobToken[0] == 'reduceLetter':
+                letter_reducer(id, int(jobToken[1]), bucket_name)
+                toSend = "worker {0} done reduceLetter {1}".format(id, jobToken[1])
+            elif jobToken[0] == 'kill':
+                break
+            else:
+                err = "Error: first word of message was not map/reduce/kill."
+                print(job)
+                print(err)
+                # maybe send error to master?
+                break
+            s.close()
+    except Exception as e:
+        log.write(e.with_traceback())
+        log.flush()
+    finally:
+        log.close()
 
+    with smart_open('log.txt', 'rb') as remote_log:
+        s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
+        s3.put_object(Body=remote_log.read(), Bucket=bucket_name, Key='log_worker_{}.txt'.format(id))
     print("done, I can kill myself!")

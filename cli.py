@@ -44,8 +44,8 @@ kops create cluster \
 update_template = "kops update cluster --name {cluster_name} --yes"
 validate_template = "kops validate cluster --name {cluster_name}"
 
-view_cluster_template = 'kubectl cluster-info --name {cluster_name}'
-get_nodes_template = 'kubectl get nodes --name {cluster_name}'
+view_cluster_command = 'kubectl cluster-info'.split()
+get_nodes_command = 'kubectl get nodes'.split()
 
 deploy_dashboard_template = 'kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml'
 access_dashboard_template = "kubectl proxy"
@@ -72,7 +72,7 @@ class Shibal(object):
             'AWS_ACCESS_KEY_ID': key,
             'AWS_SECRET_ACCESS_KEY': secret
         })
-        
+
         self.default_options = {
             'cluster_name': self.clusterName
         }
@@ -84,7 +84,7 @@ class Shibal(object):
             'master_size': "c4.large",
             'master_count': 1
         }
- 
+
         self.setupS3()
         self.main()
 
@@ -107,11 +107,11 @@ class Shibal(object):
         # Encryption
         s3.put_bucket_encryption(
                 Bucket=storeName,
-                ServerSideEncryptionConfiguration = {
+                ServerSideEncryptionConfiguration={
                     "Rules": [
                         {
-                            "ApplyServerSideEncryptionByDefault" : {
-                                "SSEAlgorithm":"AES256"
+                            "ApplyServerSideEncryptionByDefault": {
+                                "SSEAlgorithm": "AES256"
                                 }
                             }
                         ]
@@ -137,11 +137,11 @@ class Shibal(object):
             elif prompt == 11:
                 for k, v in self.default_options.items():
                     val = input("{} [{}]: ".format(readable_name[k], v))
-                    if len(val) > 0: 
+                    if len(val) > 0:
                         self.default_options[k] = val
                 for k, v in self.creation_options.items():
                     val = input("{} [{}]: ".format(readable_name[k], v))
-                    if len(val) > 0: 
+                    if len(val) > 0:
                         self.creation_options[k] = val
             elif prompt == 2:
                 # Create
@@ -152,7 +152,7 @@ class Shibal(object):
             elif prompt == 21:
                 # Validate
                 validate_command = validate_template.format(**self.default_options).split()
-                subprocess.call(validate_command, env=self.environ) 
+                subprocess.call(validate_command, env=self.environ)
             elif prompt == 22:
                 # Deploy Dashboard
                 deploy_dashboard_command = deploy_dashboard_template.format(**self.default_options).split()
@@ -163,29 +163,27 @@ class Shibal(object):
                 p = subprocess.Popen(access_dashboard_command, env=self.environ)
                 try:
                     p.communicate(timeout=1)
-                except:
+                except Exception:
                     pass
                 finally:
-                    print("Open: http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/") 
+                    print("Open: http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/")
             elif prompt == 3:
-                view_cluster_command = view_cluster_template.format(**self.default_options).split()
                 subprocess.call(view_cluster_command, env=self.environ)
-                get_nodes_command = get_nodes_template.format(**self.default_options).split()
                 subprocess.call(get_nodes_command, env=self.environ)
             elif prompt == 31:
                 get_password_command = get_password_template.format(**self.default_options).split()
                 subprocess.call(get_password_command, env=self.environ)
             elif prompt == 32:
                 get_token_command = get_token_template.format(**self.default_options).split()
-                subprocess.call(get_token_command, env=self.environ) 
+                subprocess.call(get_token_command, env=self.environ)
             elif prompt == 4:
                 if p:
                     p.terminate()
                 delete_command = delete_template.format(**self.default_options).split()
                 subprocess.call(delete_command, env=self.environ)
 
+
 if __name__ == "__main__":
- 
     parser = argparse.ArgumentParser(description='Cloud Computing Assessment CLI - Group 2')
     parser.add_argument('--csv', dest='csvfile', default='credentials.csv',
                         help='CSV file with credentials')
@@ -194,7 +192,7 @@ if __name__ == "__main__":
     username = None
     password = None
     key = None
-    secret = None 
+    secret = None
 
     with open(args.csvfile, 'r') as f:
         reader = csv.reader(f)

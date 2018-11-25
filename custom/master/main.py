@@ -136,7 +136,7 @@ def communicate(s):
             # workerStat will need to be locked as well for worker entering/leaving feature
         elif status == 'done':
             func_name = args[0]
-            log.write("Received worker {} DOING {}\n".format(worker_num, func_name))
+            log.write("Received worker {} DONE {}\n".format(worker_num, func_name))
             workerStat[worker_num] = 'idle'
             if func_name == 'mapWord':
                 mapWordStat[args[1]] = 'done'
@@ -197,6 +197,8 @@ def communicate(s):
         log.write('current workerStat: {}\n'.format(str(workerStat)))
         log.write('current mapWordStat: {}\n'.format(str(mapWordStat)))
         log.write('current reduceWordStat: {}\n'.format(str(reduceWordStat)))
+        log.write('current mapLetterStat: {}\n'.format(str(mapLetterStat)))
+        log.write('current reduceLetterStat: {}\n'.format(str(reduceLetterStat)))
         log.flush()
 
 

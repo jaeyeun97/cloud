@@ -44,6 +44,7 @@ kops create cluster \
 update_template = "kops update cluster --name {cluster_name} --yes"
 validate_template = "kops validate cluster --name {cluster_name}"
 
+kops_export_template = 'kops export kubecfg {cluster_name}'
 view_cluster_command = 'kubectl cluster-info'.split()
 get_nodes_command = 'kubectl get nodes'.split()
 
@@ -151,6 +152,8 @@ class Shibal(object):
                 subprocess.call(update_command, env=self.environ)
             elif prompt == 21:
                 # Validate
+                kops_export_command = kops_export_template.format(**self.default_options).split()
+                subprocess.call(kops_export_command, env=self.environ)
                 validate_command = validate_template.format(**self.default_options).split()
                 subprocess.call(validate_command, env=self.environ)
             elif prompt == 22:

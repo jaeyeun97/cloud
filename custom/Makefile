@@ -4,7 +4,7 @@ IMG_PREFIX = wordcount-
 POD_PREFIX = group2-custom-
 USER_HANDLE = jaeyeun97
 
-WORKERS = $(addprefix worker-, 1 2 3 4 5)
+WORKERS = $(addprefix worker-, 1 2 3 4 5 6 7 8 9)
 PODS = $(addprefix $(POD_PREFIX), master $(WORKERS))
 
 all: delete build
@@ -27,4 +27,4 @@ build_%:
 	docker push $(USER_HANDLE)/$(IMG_PREFIX)$*
 
 run:
-	cd ./submit && python main.py --csv ../../credentials.csv --worker-count 9 --chunk-size 32768 https://s3.eu-west-2.amazonaws.com/cam-cloud-computing-data-source/data-500MB.txt
+	cd ./submit && python main.py --csv ../../credentials.csv --chunk-size 1024 --worker-count 9 --chunk-size 32768 https://s3.eu-west-2.amazonaws.com/cam-cloud-computing-data-source/data-500MB.txt

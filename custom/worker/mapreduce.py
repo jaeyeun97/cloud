@@ -3,6 +3,7 @@ import os
 import socket
 import time
 import boto3
+import traceback
 from boto3.session import Session
 from functools import reduce
 from smart_open import smart_open
@@ -18,9 +19,20 @@ id = os.environ['WORKER_NUM']
 host_service = os.environ['GROUP2_CUSTOM_MASTER_SERVICE_HOST']
 port_service = os.environ['GROUP2_CUSTOM_MASTER_SERVICE_PORT']
 
+# Connect to s3 and get input
+session = Session(aws_access_key_id=AWS_ACCESS_KEY_ID,
+                  aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+                  region_name='eu-west-2')
+s3 = session.resource('s3')
+bucket = s3.Bucket(bucket_name)
 
-def word_mapper(id, input, partitionNum, bucket):  # returns string[] outputNames
-    print("Started WordMap on chunk {} for {} partitions".format(input, partitionNum))
+# for tokenization
+delimiters = u'[\n\t ,\.;:?!"\(\)\[\]{}\-_]+'
+alphabets = u'abcdefghijklmnopqrstuvwxyz'
+
+
+def word_mapper(id, input, partitionNum):  # returns string[] outputNames
+    log.write("Started WordMap on chunk {} for {} partitions\n".format(input, partitionNum))
 
     chunk = int(input.split(':')[1])
 
@@ -30,17 +42,7 @@ def word_mapper(id, input, partitionNum, bucket):  # returns string[] outputName
         f = open("word_map_{0}_{1}.txt".format(chunk, i), 'w+')
         files.append(f)
 
-    # Connect to s3 and get input
-    session = Session(aws_access_key_id=AWS_ACCESS_KEY_ID,
-                      aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-                      region_name='eu-west-2')
-    s3 = session.resource('s3')
-    bucket = s3.Bucket(bucket_name)
     scanner = s3.Object(bucket_name, input).get()['Body'].iter_lines()
-
-    # for tokenization
-    delimiters = u'[\n\t ,\.;:?!"\(\)\[\]{}\-_]+'
-    alphabets = u'abcdefghijklmnopqrstuvwxyz'
 
     # read input line by line
     for line in scanner:
@@ -57,27 +59,49 @@ def word_mapper(id, input, partitionNum, bucket):  # returns string[] outputName
 
     # close files and upload to s3
     outputNames = list()
-    for i in range(0, partitionNum):
+    for i in range(partitionNum):
         files[i].close()
         fname = "word_map_{0}_{1}.txt".format(chunk, i)
         bucket.upload_file(fname, fname)
         outputNames.append(fname)
 
-    print("finished word_map")
+    log.write("finished word_map\n")
     return outputNames
 
 
-def word_reducer(id, partition, bucket):  # returns string output file name
-    print("Started WordReduce on partition {}".format(partition))
+def word_reducer(id, partition):  # returns string output file name
+    log.write("Started WordReduce on partition {}\n".format(partition))
     # get input files
-    session = Session(aws_access_key_id=AWS_ACCESS_KEY_ID,
-                      aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-                      region_name='eu-west-2')
-    s3 = session.resource('s3')
-    bucket = s3.Bucket(bucket_name)
-    allFiles = map(lambda x: x.key, bucket.objects.all())
-    needFiles = filter(lambda x: re.split('[_.]', x)[0] == 'word' and re.split('[_.]', x)[1] == 'map' and int(re.split('[_.]', x)[3]) == partition, allFiles)
 
+    allFiles = (x.key for x in bucket.objects.all())
+
+    def splitter(x):
+        splits = re.split('[_.]', x)
+        return splits[0] == 'word' and splits[1] == 'map' and int(splits[3]) == partition
+
+    needFiles = filter(splitter, allFiles)
+
+    # Dictionary for reduce
+    outDict = dict()  # word : count
+
+    # iterate through all files in a partition
+    for file in needFiles:
+        log.write("Opened file: {}\n".format(file))
+        scanner = s3.Object(bucket_name, file).get()['Body'].iter_lines()
+        for line in scanner:
+            kv = line.decode('utf-8').rstrip().split('\t')
+            log.write('{}\t{}\n'.format(kv[0], kv[1]))
+            if kv[0] not in outDict:
+                outDict[kv[0]] = 1
+            else:
+                outDict[kv[0]] = outDict[kv[0]] + 1
+
+    key = 'word_reduce_{0}_{1}.txt'.format(id, partition)
+    with smart_open('s3://{}/{}'.format(bucket_name, key), 'w', s3_session=session) as f:
+        for k, v in outDict.items():
+            f.write("{}\t{}\n".format(k, v))
+
+    '''
     # put contents into a file
     temp = open('temp.txt', 'w+')
 
@@ -109,17 +133,18 @@ def word_reducer(id, partition, bucket):  # returns string output file name
     if word != "":
         output.write('{0}\t{1}\n'.format(word, count))  # last line
     output.close()
+    sortedF.close()
+    '''
 
     # upload file to  s3
-    fname = 'word_reduce_{0}_{1}.txt'.format(id, partition)
-    bucket.upload_file('output.txt', fname)
+    # fname = 'word_reduce_{0}_{1}.txt'.format(id, partition)
+    # bucket.upload_file('output.txt', fname)
+    log.write("finished word_reduce\n")
+    return key
 
-    print("finished word_reduce")
-    return fname
 
-
-def letter_mapper(id, input, partitionNum, bucket):  # returns string[] outputNames
-    print("Started LetterMap on chunk {} for {} partitions".format(input, partitionNum))
+def letter_mapper(id, input, partitionNum):  # returns string[] outputNames
+    log.write("Started LetterMap on chunk {} for {} partitions\n".format(input, partitionNum))
 
     chunk = int(input.split(':')[1])
     # create temp files according to partitionNum
@@ -128,26 +153,14 @@ def letter_mapper(id, input, partitionNum, bucket):  # returns string[] outputNa
         f = open("letter_map_{0}_{1}.txt".format(chunk, i), 'w+')
         files.append(f)
 
-    # Connect to s3 and get input
-    session = Session(aws_access_key_id=AWS_ACCESS_KEY_ID,
-                      aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-                      region_name='eu-west-2')
-    s3 = session.resource('s3')
-    bucket = s3.Bucket(bucket_name)
     scanner = s3.Object(bucket_name, input).get()['Body'].iter_lines()
-
-    # for tokenization
-    delimiters = u'[\n\t ,\.;:?!"\(\)\[\]{}\-_]+'
-    alphabets = u'abcdefghijklmnopqrstuvwxyz'
 
     # read input line by line
     for line in scanner:
-        print("printing line for lettermap: " + line.decode('utf-8'))
         # tokenize
         tokens = filter(lambda w: reduce(lambda x, y: x and y, (c in alphabets for c in w)),
                         filter(lambda x: len(x) > 0,
-                               map(lambda x: x.lower(),
-                                   list(line.decode('utf-8')))))
+                               list(line.decode('utf-8').lower())))
 
         # write tokens as (token, 1) to corresponding file
         for token in tokens:
@@ -162,21 +175,42 @@ def letter_mapper(id, input, partitionNum, bucket):  # returns string[] outputNa
         bucket.upload_file(fname, fname)
         outputNames.append(fname)
 
-    print("finished letter_map")
+    log.write("finished letter_map\n")
     return outputNames
 
 
-def letter_reducer(id, partition, bucket):  # returns string output file name
-    print("Started LetterReduce on partition {}".format(partition))
+def letter_reducer(id, partition):  # returns string output file name
+    log.write("Started LetterReduce on partition {}\n".format(partition))
     # get input files
-    session = Session(aws_access_key_id=AWS_ACCESS_KEY_ID,
-                      aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-                      region_name='eu-west-2')
-    s3 = session.resource('s3')
-    bucket = s3.Bucket(bucket_name)
-    allFiles = map(lambda x: x.key, bucket.objects.all())
-    needFiles = filter(lambda x: re.split('[_.]', x)[0] == 'letter' and re.split('[_.]', x)[1] == 'map' and int(re.split('[_.]', x)[3]) == partition, allFiles)
 
+    allFiles = map(lambda x: x.key, bucket.objects.all())
+
+    def splitter(x):
+        splits = re.split('[_.]', x)
+        return splits[0] == 'letter' and splits[1] == 'map' and int(splits[3]) == partition
+    needFiles = filter(splitter, allFiles)
+
+    # Dictionary for reduce
+    outDict = {}  # word : count
+
+    # iterate through all files in a partition
+    for file in needFiles:
+        log.write("Opened file: {}\n".format(file))
+        scanner = s3.Object(bucket_name, file).get()['Body'].iter_lines()
+        for line in scanner:
+            kv = line.decode('utf-8').rstrip().split('\t')
+            log.write('{}\t{}\n'.format(kv[0], kv[1]))
+            if kv[0] not in outDict:
+                outDict[kv[0]] = 1
+            else:
+                outDict[kv[0]] = outDict[kv[0]] + 1
+
+    key = 'letter_reduce_{0}_{1}.txt'.format(id, partition)
+    with smart_open('s3://{}/{}'.format(bucket_name, key), 'w', s3_session=session) as f:
+        for k, v in outDict.items():
+            f.write("{}\t{}\n".format(k, v))
+
+    '''
     # put contents into a file
     temp = open('temp.txt', 'w+')
 
@@ -210,12 +244,14 @@ def letter_reducer(id, partition, bucket):  # returns string output file name
     output.close()
     sortedF.close()
 
+
     # upload file to  s3
     fname = 'letter_reduce_{0}_{1}.txt'.format(id, partition)
     bucket.upload_file('output.txt', fname)
+    '''
 
-    print("finished letter_reduce")
-    return fname
+    log.write("finished letter_reduce\n")
+    return key
 
 
 """
@@ -230,53 +266,51 @@ master: kill worker x
 """
 if __name__ == '__main__':
     toSend = "worker {0} ready".format(id)
-    waitTime = 0.1
-    try:
-        while True:
-            s = socket.socket()
+    while True:
+        s = socket.socket()
+        try:
             s.connect(((host_service, int(port_service))))
             # say I'm ready
-            print("sending : {}".format(toSend))
+            log.write("sending : {}\n".format(toSend))
             s.send(toSend.encode('utf-8'))
             # wait for job
             job = s.recv(4096).decode('utf-8')
-            # print("Received: {}".format(job))
+            # log.write("Received: {}".format(job))
             if len(job) == 0:
-                time.sleep(waitTime)
-                waitTime *= 2
+                time.sleep(1)
                 toSend = "worker {0} ready".format(id)
                 continue
-            else:
-                waitTime = 0.1
             jobToken = job.split(' ')
             if jobToken[0] == 'mapWord':
-                word_mapper(id,  jobToken[1], int(jobToken[2]), bucket_name)
+                word_mapper(id,  jobToken[1], int(jobToken[2]))
                 toSend = "worker {0} done mapWord {1} {2}".format(id, jobToken[1], jobToken[2])
             elif jobToken[0] == 'reduceWord':
-                word_reducer(id, int(jobToken[1]), bucket_name)
+                word_reducer(id, int(jobToken[1]))
                 toSend = "worker {0} done reduceWord {1}".format(id, jobToken[1])
             elif jobToken[0] == 'mapLetter':
-                letter_mapper(id,  jobToken[1], int(jobToken[2]), bucket_name)
+                letter_mapper(id,  jobToken[1], int(jobToken[2]))
                 toSend = "worker {0} done mapLetter {1} {2}".format(id, jobToken[1], jobToken[2])
             elif jobToken[0] == 'reduceLetter':
-                letter_reducer(id, int(jobToken[1]), bucket_name)
+                letter_reducer(id, int(jobToken[1]))
                 toSend = "worker {0} done reduceLetter {1}".format(id, jobToken[1])
             elif jobToken[0] == 'kill':
                 break
             else:
                 err = "Error: first word of message was not map/reduce/kill."
-                print(job)
-                print(err)
+                log.write("{}\n".format(job))
+                log.write("{}\n".format(err))
                 # maybe send error to master?
                 break
+            log.flush()
+        except Exception:
+            traceback.print_exc()
+            traceback.print_exc(file=log)
+            log.flush()
+        finally:
             s.close()
-    except Exception as e:
-        log.write(e.with_traceback())
-        log.flush()
-    finally:
-        log.close()
 
     with smart_open('log.txt', 'rb') as remote_log:
         s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
         s3.put_object(Body=remote_log.read(), Bucket=bucket_name, Key='log_worker_{}.txt'.format(id))
-    print("done, I can kill myself!")
+    log.write("done, I can kill myself!\n")
+    log.close()

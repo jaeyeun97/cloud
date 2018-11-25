@@ -56,19 +56,13 @@ file_name = os.environ['FILE_NAME']
 chunk_size = int(os.environ['CHUNK_SIZE'])
 worker_count = int(os.environ['WORKER_COUNT'])
 worker_image = os.environ['WORKER_IMAGE']
-partition_num = 2 * worker_count
 newline = '\n'.encode()
 
 config.load_incluster_config()
 api = client.CoreV1Api()
 
-# chunk/partition: 'unassigned', 'doing', 'done'
 mapWordStat = dict()
-reduceWordStat = dict((i, 'unassigned') for i in range(partition_num))
 mapLetterStat = dict()
-reduceLetterStat = dict((i, 'unassigned') for i in range(partition_num))
-# woker number : {'busy', 'idle', 'dead'}
-workerStat = dict()
 
 
 # get file, chunk it up, upload to s3
@@ -120,7 +114,12 @@ def getWorkers():
 
 
 # infinitely communicate until job over
-def communicate(s):
+def communicate(s, partition_num):
+    # chunk/partition: 'unassigned', 'doing', 'done'
+    reduceWordStat = dict((i, 'unassigned') for i in range(partition_num))
+    reduceLetterStat = dict((i, 'unassigned') for i in range(partition_num))
+    # woker number : {'busy', 'idle', 'dead'}
+    workerStat = dict()
     while True:
         conn, addr = s.accept()
         r = conn.recv(4096).decode('utf-8').split(' ')
@@ -185,12 +184,10 @@ def communicate(s):
                         reduceLetterStat[k] = 'doing'
                         log.write("assigned reduceLetter for partition {} to {}\n".format(k, worker_num))
                         break
-            else:
-                if reduce(lambda x, y: x and y, (v == 'done' for v in reduceWordStat.values())) \
-                        and reduce(lambda x, y: x and y, (v == 'done' for v in reduceLetterStat.values())):
-                    conn.send("kill worker {}".format(worker_num).encode('utf-8'))
-                    workerStat[worker_num] = 'dead'
-                    log.write("just killed worker {}\n".format(worker_num))
+            elif 'unassigned' not in reduceWordStat.values() and 'unassigned' not in reduceLetterStat.values():
+                conn.send("kill worker {}".format(worker_num).encode('utf-8'))
+                workerStat[worker_num] = 'dead'
+                log.write("just killed worker {}\n".format(worker_num))
         conn.close()
         if len(workerStat) > 0 and reduce(lambda x, y: x and y, (v == 'dead' for v in workerStat.values())):
             break
@@ -266,12 +263,12 @@ def uploadSQL(t, l, session):
 
 def main():
     session = SQLSession()
-    chunk_size = chunk()
+    chunk_num = chunk()
     log.write('Spawning workers\n')
     log.flush()
     spawnWorkers()
     s = initSocket()
-    communicate(s)
+    communicate(s, worker_count * 2)
     log.write('Done with Nodes, going to SQL\n')
     log.flush()
     for t in ['word', 'letter']:

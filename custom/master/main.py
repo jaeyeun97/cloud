@@ -278,9 +278,7 @@ def uploadSQL(t, l, session):
 
 
 def main():
-    start_time = time.clock()
-    start_time2 = time.perf_counter()
-
+    start_time = time.perf_counter()
     session = SQLSession()
     chunk_num = chunk()
     log.write('Spawning workers\n')
@@ -298,7 +296,6 @@ def main():
     session.commit()
 
     elapsed_time = time.perf_counter() - start_time
-
     match = re.match(r'data-(.*)MB.txt', file_name)
     if match:
         size = int(match.group(1))

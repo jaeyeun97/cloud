@@ -35,6 +35,8 @@ runcluster:
     --name wordCount \
 	--conf spark.app.name=wordCount \
   --conf spark.executor.instances=8 \
+	--conf spark.kubernetes.driver.limit.cores=0.6 \
+	--conf spark.kubernetes.executor.request.cores=0.6 \
 	--conf spark.kubernetes.container.image=jaeyeun97/wordcount:latest \
 	--conf spark.kubernetes.container.image.pullPolicy=Always \
 	--conf spark.kubernetes.authenticate.driver.serviceAccountName=spark  \
@@ -42,7 +44,7 @@ runcluster:
 	--conf "spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem" \
 	--conf "spark.hadoop.fs.s3a.access.key=AKIAJ6G7DAUEOXWO74QA" \
 	--conf "spark.hadoop.fs.s3a.secret.key=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" \
-	file:///opt/spark/work-dir/step2.py "s3a://cam-cloud-computing-data-source/data-500MB.txt"
+	file:///opt/spark/work-dir/step2.py "s3a://cam-cloud-computing-data-source/data-200MB.txt"
 
 # kubectl create serviceaccount spark
 # kubectl create clusterrolebinding spark-role --clusterrole=edit --serviceaccount=default:spark --namespace=default

@@ -263,9 +263,8 @@ def uploadSQL(t, l, session):
 
 
 def main():
-    start_time = time.clock()
-    start_time2 = time.perf_counter()
-    
+    start_time = time.perf_counter()
+
     session = SQLSession()
     chunk_num = chunk()
     log.write('Spawning workers\n')
@@ -282,8 +281,7 @@ def main():
         uploadSQL(t, rows, session)
     session.commit()
 
-    elapsed_time = time.clock() - start_time
-    elapsed_time2 = time.perf_counter() - start_time
+    elapsed_time = time.perf_counter() - start_time
     log.write('---------------------\nTime taken: t {} or pc {}\n'.format(elapsed_time, elapsed_time2))
     log.close()
     with smart_open('log.txt', 'rb') as remote_log:

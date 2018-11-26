@@ -2,10 +2,13 @@
 import re
 import math
 import sys
+import os
 from pyspark import SparkContext
 from pyspark.sql import SQLContext, Row, SparkSession
 from pyspark.sql.functions import udf
 from pyspark.sql.types import *
+
+start_time = time.perf_counter()
 
 cnx=   {'host': 'group2dbinstance.cxezedslevku.eu-west-2.rds.amazonaws.com',
         'username': 'group2',
@@ -23,7 +26,7 @@ if len(sys.argv) < 2:
     url = 's3a://group-dataset/sample-a.txt'
 else:
     url = sys.argv[1]
-    
+
 filtered = sc.textFile(url) \
             .flatMap(lambda x: re.split(delimiters, x)) \
             .map(unicode.lower) \
@@ -123,7 +126,17 @@ DFoutL.write.format('jdbc').options(
     user = cnx['username'],
     password = cnx['password']).mode("overwrite").save()
 
-
-
-
-
+elapsed_time = time.perf_counter() - start_time
+execNum = int(sc.getConf().get(u'spark.executor.instances'))
+filename = os.path.basename(sys.argv[1])
+match = re.match(r'data-(.*)MB.txt', file_name)
+if match:
+    size = int(match.group(1))
+    row = Row(application='spark', nodes=execNum, data=size, execution_time=round(elapsed_time))
+    df_exp = spark.createDataFrame([row])
+    df_exp.write.format('jdbc').options(
+        url = "jdbc:mysql://{0}:{1}/{2}".format(cnx['host'], '3306', cnx['db']),
+        driver = "com.mysql.jdbc.Driver",
+        dbtable = "step4_performance_results",
+        user = cnx['username'],
+        password = cnx['password']).mode("append").save()

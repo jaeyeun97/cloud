@@ -35,7 +35,7 @@ runcluster:
     --name wordCount \
 	--conf spark.app.name=wordCount \
   --conf spark.executor.instances=8 \
-	--conf spark.kubernetes.driver.limit.cores=0.6 \
+	--conf spark.kubernetes.driver.request.cores=0.6 \
 	--conf spark.kubernetes.executor.request.cores=0.6 \
 	--conf spark.kubernetes.container.image=jaeyeun97/wordcount:latest \
 	--conf spark.kubernetes.container.image.pullPolicy=Always \

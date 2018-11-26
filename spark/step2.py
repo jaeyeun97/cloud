@@ -1,26 +1,26 @@
-# -- coding: utf-8 --
 import re
 import math
 import sys
 import os
-from pyspark import SparkContext
+import time
+from functools import reduce
 from pyspark.sql import SQLContext, Row, SparkSession
 from pyspark.sql.functions import udf
-from pyspark.sql.types import *
+from pyspark.sql.types import StringType
 
 start_time = time.perf_counter()
 
-cnx=   {'host': 'group2dbinstance.cxezedslevku.eu-west-2.rds.amazonaws.com',
-        'username': 'group2',
-        'password': 'group2sibal',
-        'db': 'sw777_CloudComputingCoursework'}
+cnx = {'host': 'group2dbinstance.cxezedslevku.eu-west-2.rds.amazonaws.com',
+       'username': 'group2',
+       'password': 'group2sibal',
+       'db': 'sw777_CloudComputingCoursework'}
 
 spark = SparkSession.builder.appName("wordCount").getOrCreate()
 sc = spark.sparkContext
 sqlc = SQLContext(sc)
 
-delimiters = u'[\n\t ,\.;:?!"\(\)\[\]{}\-_]+'
-alphabets = u'abcdefghijklmnopqrstuvwxyz'
+delimiters = '[\n\t ,\.;:?!"\(\)\[\]{}\-_]+'
+alphabets = 'abcdefghijklmnopqrstuvwxyz'
 
 if len(sys.argv) < 2:
     url = 's3a://group-dataset/sample-a.txt'
@@ -29,14 +29,14 @@ else:
 
 filtered = sc.textFile(url) \
             .flatMap(lambda x: re.split(delimiters, x)) \
-            .map(unicode.lower) \
+            .map(str.lower) \
             .filter(lambda w: len(w) > 0) \
             .filter(lambda w: reduce(lambda x, y: x and y, (c in alphabets for c in w)))
 
-wordCount = filtered.map(lambda x:(x,1)) \
-                .reduceByKey(lambda a,b:a+b) \
+wordCount = filtered.map(lambda x: (x, 1)) \
+                .reduceByKey(lambda a, b: a + b) \
                 .sortByKey() \
-                .map(lambda (a,b):(b,a)) \
+                .map(lambda p: (p[1], p[0])) \
                 .sortByKey(ascending=False) \
                 .zipWithIndex()
 
@@ -56,12 +56,18 @@ print('common_threshold_l_word: ' + str(common_l))
 print('common_threshold_u_word: ' + str(common_u))
 print('rare_threshold_word: ' + str(rare))
 
+
 def getPopularStr(col):
     return "popular"
+
+
 def getCommonStr(col):
     return "common"
+
+
 def getRareStr(col):
     return "rare"
+
 
 udfCategoryPop = udf(getPopularStr, StringType())
 udfCategoryCom = udf(getCommonStr, StringType())
@@ -75,25 +81,25 @@ DFout = DFpopular.union(DFcommon).union(DFrare)
 
 DFout.select('rank', 'word', 'category', 'frequency').show()
 
-#Write to RDS mySQL DB
+# Write to RDS mySQL DB
 DFout.write.format('jdbc').options(
-    url = "jdbc:mysql://{0}:{1}/{2}".format(cnx['host'], '3306', cnx['db']),
-    driver = "com.mysql.jdbc.Driver",
-    dbtable = "words_spark",
-    user = cnx['username'],
-    password = cnx['password']).mode("overwrite").save()
+    url="jdbc:mysql://{0}:{1}/{2}".format(cnx['host'], '3306', cnx['db']),
+    driver="com.mysql.jdbc.Driver",
+    dbtable="words_spark",
+    user=cnx['username'],
+    password=cnx['password']).mode("overwrite").save()
 
-#Letters
+# Letters
 filtered_letters = sc.textFile(url) \
         .flatMap(lambda x: list(x)) \
-        .map(unicode.lower) \
+        .map(str.lower) \
         .filter(lambda w: len(w) > 0) \
         .filter(lambda w: reduce(lambda x, y: x and y, (c in alphabets for c in w)))
 
-wordCount_letters = filtered_letters.map(lambda x:(x,1)) \
-        .reduceByKey(lambda a,b:a+b) \
+wordCount_letters = filtered_letters.map(lambda x: (x, 1)) \
+        .reduceByKey(lambda a, b: a + b) \
         .sortByKey() \
-        .map(lambda (a,b):(b,a)) \
+        .map(lambda p: (p[1], p[0])) \
         .sortByKey(ascending=False) \
         .zipWithIndex()
 
@@ -118,25 +124,25 @@ DFoutL = DFpopularL.union(DFcommonL).union(DFrareL)
 
 DFoutL.select('rank', 'word', 'category', 'frequency').show()
 
-#Write to RDS mySQL DB
+# Write to RDS mySQL DB
 DFoutL.write.format('jdbc').options(
-    url = "jdbc:mysql://{0}:{1}/{2}".format(cnx['host'], '3306', cnx['db']),
-    driver = "com.mysql.jdbc.Driver",
-    dbtable = "letters_spark",
-    user = cnx['username'],
-    password = cnx['password']).mode("overwrite").save()
+    url="jdbc:mysql://{0}:{1}/{2}".format(cnx['host'], '3306', cnx['db']),
+    driver="com.mysql.jdbc.Driver",
+    dbtable="letters_spark",
+    user=cnx['username'],
+    password=cnx['password']).mode("overwrite").save()
 
 elapsed_time = time.perf_counter() - start_time
 execNum = int(sc.getConf().get(u'spark.executor.instances'))
 filename = os.path.basename(sys.argv[1])
-match = re.match(r'data-(.*)MB.txt', file_name)
+match = re.match(r'data-(.*)MB.txt', filename)
 if match:
     size = int(match.group(1))
     row = Row(application='spark', nodes=execNum, data=size, execution_time=round(elapsed_time))
     df_exp = spark.createDataFrame([row])
     df_exp.write.format('jdbc').options(
-        url = "jdbc:mysql://{0}:{1}/{2}".format(cnx['host'], '3306', cnx['db']),
-        driver = "com.mysql.jdbc.Driver",
-        dbtable = "step4_performance_results",
-        user = cnx['username'],
-        password = cnx['password']).mode("append").save()
+        url="jdbc:mysql://{0}:{1}/{2}".format(cnx['host'], '3306', cnx['db']),
+        driver="com.mysql.jdbc.Driver",
+        dbtable="step4_performance_results",
+        user=cnx['username'],
+        password=cnx['password']).mode("append").save()

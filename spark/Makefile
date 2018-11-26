@@ -2,7 +2,7 @@ PROJ_NAME=wordcount
 REPO=jaeyeun97
 SPARK=../../spark
 
-export PYSPARK_PYTHON=python2
+export PYSPARK_PYTHON=python3
 
 default: all
 
@@ -35,11 +35,10 @@ run:
   --name wordCount \
 	--conf spark.app.name=wordCount \
   --conf spark.executor.instances=8 \
-	--conf spark.kubernetes.driver.request.cores=0.6 \
-	--conf spark.kubernetes.executor.request.cores=0.6 \
 	--conf spark.kubernetes.container.image=jaeyeun97/wordcount:latest \
 	--conf spark.kubernetes.container.image.pullPolicy=Always \
 	--conf spark.kubernetes.authenticate.driver.serviceAccountName=spark  \
+	--conf spark.kubernetes.pyspark.pythonVersion=3 \
 	--jars http://central.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.1.1/hadoop-aws-3.1.1.jar,http://central.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.11.271/aws-java-sdk-bundle-1.11.271.jar,http://central.maven.org/maven2/mysql/mysql-connector-java/8.0.13/mysql-connector-java-8.0.13.jar \
 	--conf "spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem" \
 	--conf "spark.hadoop.fs.s3a.access.key=AKIAJ6G7DAUEOXWO74QA" \

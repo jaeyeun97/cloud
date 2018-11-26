@@ -300,6 +300,7 @@ def main():
     if match:
         size = int(match.group(1))
         session.add(Result('custom', worker_count+1, size, elapsed_time))
+        session.commit()
 
     log.write('---------------------\nTime taken: {}\n'.format(elapsed_time))
     log.close()

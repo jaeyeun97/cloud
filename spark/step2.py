@@ -137,7 +137,7 @@ execNum = int(sc.getConf().get(u'spark.executor.instances'))
 filename = os.path.basename(sys.argv[1])
 match = re.match(r'data-(.*)MB.txt', filename)
 if match:
-    size = int(match.group(1))
+    size = int(match.group(1)) + 1
     row = Row(application='spark', nodes=execNum, data=size, execution_time=round(elapsed_time))
     df_exp = spark.createDataFrame([row])
     df_exp.write.format('jdbc').options(

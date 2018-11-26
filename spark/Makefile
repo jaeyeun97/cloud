@@ -8,9 +8,9 @@ default: all
 
 all: build run
 
-build: build_image tag push
+build: image tag push
 
-build_image:
+image:
 	docker build -t ${PROJ_NAME}:latest .
 
 tag:
@@ -28,11 +28,11 @@ runlocal:
 		--conf "spark.hadoop.fs.s3a.secret.key=BaGy0PVJlD0rc9qk0/H814sExdvmEGDRnvRqFSED" \
 		./step2.py "s3a://cam-cloud-computing-data-source/data-500MB.txt"
 
-runcluster:
+run:
 	${SPARK}/bin/spark-submit \
 	--master k8s://http://localhost:8001 \
-    --deploy-mode cluster \
-    --name wordCount \
+  --deploy-mode cluster \
+  --name wordCount \
 	--conf spark.app.name=wordCount \
   --conf spark.executor.instances=8 \
 	--conf spark.kubernetes.driver.request.cores=0.6 \

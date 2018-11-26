@@ -26,7 +26,7 @@ runlocal:
 		--conf "spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem" \
 		--conf "spark.hadoop.fs.s3a.access.key=AKIAJ6G7DAUEOXWO74QA" \
 		--conf "spark.hadoop.fs.s3a.secret.key=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" \
-		./step2.py "s3a://cam-cloud-computing-data-source/data-500MB.txt"
+		./step2.py "s3a://cam-cloud-computing-data-source/data-200MB.txt"
 
 run:
 	${SPARK}/bin/spark-submit \
@@ -34,7 +34,7 @@ run:
   --deploy-mode cluster \
   --name wordCount \
 	--conf spark.app.name=wordCount \
-  --conf spark.executor.instances=8 \
+  --conf spark.executor.instances=4 \
 	--conf spark.kubernetes.container.image=jaeyeun97/wordcount:latest \
 	--conf spark.kubernetes.container.image.pullPolicy=Always \
 	--conf spark.kubernetes.authenticate.driver.serviceAccountName=spark  \
@@ -43,7 +43,7 @@ run:
 	--conf "spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem" \
 	--conf "spark.hadoop.fs.s3a.access.key=AKIAJ6G7DAUEOXWO74QA" \
 	--conf "spark.hadoop.fs.s3a.secret.key=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" \
-	file:///opt/spark/work-dir/step2.py "s3a://cam-cloud-computing-data-source/data-200MB.txt"
+	file:///opt/spark/work-dir/step2.py "https://www.cl.cam.ac.uk/teaching/1819/CloudComp/files/samples/sample-d.txt"
 
 # kubectl create serviceaccount spark
 # kubectl create clusterrolebinding spark-role --clusterrole=edit --serviceaccount=default:spark --namespace=default

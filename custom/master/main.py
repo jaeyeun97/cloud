@@ -4,6 +4,7 @@ import re
 import math
 import os
 import socket
+import time
 from boto3.session import Session
 from kubernetes import client, config
 from sqlalchemy.ext.declarative import declarative_base
@@ -262,6 +263,9 @@ def uploadSQL(t, l, session):
 
 
 def main():
+    start_time = time.clock()
+    start_time2 = time.perf_counter()
+    
     session = SQLSession()
     chunk_num = chunk()
     log.write('Spawning workers\n')
@@ -273,10 +277,14 @@ def main():
     log.flush()
     for t in ['word', 'letter']:
         rows = combineAndSort(t)
-        log.write('-------- {} --------\n'.format(t))
-        log.write('rows: {}\n'.format(rows))
+    #    log.write('-------- {} --------\n'.format(t))
+    #    log.write('rows: {}\n'.format(rows))
         uploadSQL(t, rows, session)
     session.commit()
+
+    elapsed_time = time.clock() - start_time
+    elapsed_time2 = time.perf_counter() - start_time
+    log.write('---------------------\nTime taken: t {} or pc {}\n'.format(elapsed_time, elapsed_time2))
     log.close()
     with smart_open('log.txt', 'rb') as remote_log:
         s3 = boto3.client('s3', aws_access_key_id=key, aws_secret_access_key=secret)

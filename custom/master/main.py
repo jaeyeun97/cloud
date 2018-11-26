@@ -47,6 +47,21 @@ class Letter(Base):
         self.frequency = frequency
 
 
+class Result(Base):
+    __tablename__ = 'step4_performance_results'
+    exp_id = Column(Integer, primary_key=True)
+    application = Column(String(10))
+    nodes = Column(Integer)
+    data = Column(Integer)
+    execution_time = Column(Integer)
+
+    def __init__(self, application, nodes, data, execution_time):
+        self.application = application
+        self.nodes = nodes
+        self.data = data
+        self.execution_time = execution_time
+
+
 Base.metadata.create_all(engine)
 
 key = os.environ['AWS_ACCESS_KEY_ID']
@@ -264,7 +279,6 @@ def uploadSQL(t, l, session):
 
 def main():
     start_time = time.perf_counter()
-
     session = SQLSession()
     chunk_num = chunk()
     log.write('Spawning workers\n')
@@ -282,7 +296,12 @@ def main():
     session.commit()
 
     elapsed_time = time.perf_counter() - start_time
-    log.write('---------------------\nTime taken: t {} or pc {}\n'.format(elapsed_time, elapsed_time2))
+    match = re.match(r'data-(.*)MB.txt', file_name)
+    if match:
+        size = int(match.group(1))
+        session.add(Result('custom', worker_count+1, size, elapsed_time))
+
+    log.write('---------------------\nTime taken: {}\n'.format(elapsed_time))
     log.close()
     with smart_open('log.txt', 'rb') as remote_log:
         s3 = boto3.client('s3', aws_access_key_id=key, aws_secret_access_key=secret)

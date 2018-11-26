@@ -34,7 +34,7 @@ runcluster:
     --deploy-mode cluster \
     --name wordCount \
 	--conf spark.app.name=wordCount \
-    --conf spark.executor.instances=8 \
+  --conf spark.executor.instances=8 \
 	--conf spark.kubernetes.container.image=jaeyeun97/wordcount:latest \
 	--conf spark.kubernetes.container.image.pullPolicy=Always \
 	--conf spark.kubernetes.authenticate.driver.serviceAccountName=spark  \

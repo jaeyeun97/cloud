@@ -1,3 +1,6 @@
+PROJ_NAME=wordcount
+REPO=jaeyeun97
+
 all:
 
 spark_%:
@@ -6,11 +9,22 @@ spark_%:
 custom_%:
 	$(MAKE) -C custom $*
 
-build: spark_build custom_build
+build: static_build spark_build custom_build
 
 delete: custom_delete
 
 deleteall:
 	kubectl delete pods --all
+
+static_build: image tag push
+
+image:
+	docker build ?
+
+tag:
+	docker tag ?
+
+push:
+	docker push ?
 
 run: spark_run custom_run

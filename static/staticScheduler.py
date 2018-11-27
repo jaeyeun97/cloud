@@ -9,17 +9,26 @@ from kubernetes import client, config, watch
 config.load_kube_config()
 v1=client.CoreV1Api()
 
-scheduler_name = "foobar"
+scheduler_name = "staticScheduler"
 
-def workersAllowed(app): #app = 'spark' or 'custom'
+def getFileSizes():
+    pod_list = v1.list_namespaced_pod("default")
+    custom_master_pods = filter(lambda x : x.metadata.labels["appType"] == "custom_master" and x.status.phase == "Running" : x, pod_list)
+    spark_master_pods = filter(lambda x : x.metadata.labels["appType"] == "spark_master" and x.status.phase == "Running" : x, pod_list)
+    if len(custom_master_pods) == 1 and len(spark_master_pods) == 1:
+        return [int(custom_master_pods[0]..metadata.labels["inputSize"]), int(spark_master_pods[0]..metadata.labels["inputSize"])]
+    else:
+        return [0,0]
+
+def workersAllowed(app, filesizes): #app = 'spark' or 'custom'
     #calculating number of nodes to allocate
     #ratio = ourfunct(filesize)
     #spark = round( available * ( ratio / ratio+1 ))
     #custom = available - spark
     if app == "spark":
-        return spark
+        return 3
     else:
-        return custom
+        return 7
 
 def workersAlreadyRunning(app): #app = 'spark' or 'custom'
     pod_list = v1.list_namespaced_pod("default")
@@ -54,9 +63,17 @@ def scheduler(name, node, namespace="default"):
 def main():
     w = watch.Watch()
     for event in w.stream(v1.list_namespaced_pod, "default"):
-        pod = event['object']
+        appType = event['object'].metadata.labels['appType']
         if pod.status.phase == "Pending" and pod['object'].spec.scheduler_name == scheduler_name:
-            appType = pod.metadata.labels['appType']
+            #wait if we don't see both drivers for custom & spark
+            fileSizes = []
+            while True:
+                fileSizes = getFilesizes()
+                if fileSizes[0] == 0:
+                    time.sleep(5)
+                else:
+                    break
+            #check if there's already enough workers or not
             if workersAlreadyRunning(appType) < workersAllowed(appType):
                 try:
                     res = scheduler(event['object'].metadata.name, random.choice(nodes_available()))

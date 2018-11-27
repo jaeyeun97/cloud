@@ -1,6 +1,6 @@
 PROJ_NAME=wordcount
 REPO=jaeyeun97
-SPARK=../../spark
+SPARK=../../../spark
 
 export PYSPARK_PYTHON=python3
 
@@ -33,11 +33,12 @@ run:
 	--master k8s://http://localhost:8001 \
   --deploy-mode cluster \
   --name wordCount \
-	--conf spark.kubernetes.executor.master.['appType']=spark
-	--conf spark.kubernetes.executor.master.['inputSize']=200
-	--conf spark.kubernetes.executor.label.['appType']=spark
 	--conf spark.app.name=wordCount \
-  --conf spark.executor.instances=3 \
+	--conf spark.executor.instances=3 \
+	--conf spark.kubernetes.driver.label.inputSize=200 \
+	--conf spark.kubernetes.driver.label.appType=spark_master \
+	--conf spark.kubernetes.executor.label.appType=spark_worker \
+	--conf spark.kubernetes.executor.spec.schedulerName=asdf \
 	--conf spark.kubernetes.container.image=jaeyeun97/wordcount:latest \
 	--conf spark.kubernetes.container.image.pullPolicy=Always \
 	--conf spark.kubernetes.authenticate.driver.serviceAccountName=spark  \

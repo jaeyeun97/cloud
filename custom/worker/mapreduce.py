@@ -174,6 +174,8 @@ def letter_mapper(id, input, partitionNum):  # returns string[] outputNames
         fname = "letter_map_{0}_{1}.txt".format(chunk, i)
         bucket.upload_file(fname, fname)
         outputNames.append(fname)
+        #remove local file
+        os.remove(fname)
 
     log.write("finished letter_map\n")
     return outputNames

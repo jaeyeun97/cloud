@@ -33,6 +33,7 @@ run:
 	--master k8s://http://localhost:8001 \
   --deploy-mode cluster \
   --name wordCount \
+	--conf spark.kubernetes.executor.label.['appType']=spark
 	--conf spark.app.name=wordCount \
   --conf spark.executor.instances=1 \
 	--conf spark.kubernetes.container.image=jaeyeun97/wordcount:latest \

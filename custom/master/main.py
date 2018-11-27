@@ -285,7 +285,7 @@ def main():
     log.flush()
     spawnWorkers()
     s = initSocket()
-    communicate(s, worker_count * 2)
+    communicate(s, chunk_num)
     log.write('Done with Nodes, going to SQL\n')
     log.flush()
     for t in ['word', 'letter']:

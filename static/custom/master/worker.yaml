@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: group2-custom-worker-{worker_num}
+  labels:
+    run: group2-custom-worker
+    appType: custom_worker
+spec:
+  restartPolicy: Never
+  containers:
+  - name: wordcount-worker
+    image: {worker_image}
+    env:
+    - name: AWS_ACCESS_KEY_ID
+      value: {aws_access_key_id}
+    - name: AWS_SECRET_ACCESS_KEY
+      value: {aws_secret_access_key}
+    - name: AWS_DEFAULT_REGION
+      value: eu-west-2
+    - name: BUCKET_NAME
+      value: {bucket_name}
+    - name: FILE_NAME
+      value: {file_name}
+    - name: WORKER_NUM
+      value: '{worker_num}'
+    - name: PYTHONUNBUFFERED
+      value: '0'
+    - name: PYTHONHASHSEED
+      value: '0'

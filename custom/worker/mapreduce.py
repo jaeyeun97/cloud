@@ -64,6 +64,8 @@ def word_mapper(id, input, partitionNum):  # returns string[] outputNames
         fname = "word_map_{0}_{1}.txt".format(chunk, i)
         bucket.upload_file(fname, fname)
         outputNames.append(fname)
+        #remove local file
+        os.remove(fname)
 
     log.write("finished word_map\n")
     return outputNames

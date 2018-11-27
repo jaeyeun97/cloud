@@ -4,6 +4,7 @@ metadata:
   name: group2-custom-master
   labels:
     run: group2-custom-master
+    appType: custom
 spec:
   restartPolicy: Never
   containers:

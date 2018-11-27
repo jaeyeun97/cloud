@@ -1,0 +1,6 @@
+pyyaml
+pymysql
+kubernetes
+boto3
+sqlalchemy
+smart_open

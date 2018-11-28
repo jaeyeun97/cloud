@@ -27,4 +27,4 @@ build_%:
 	docker push $(USER_HANDLE)/$(IMG_PREFIX)$*
 
 run:
-	cd ./submit && python main.py --csv ../../credentials.csv --worker-count 3 --input-size 200 --chunk-size 32768 https://s3.eu-west-2.amazonaws.com/cam-cloud-computing-data-source/data-200MB.txt
+	cd ./submit && python main.py --csv ../../credentials.csv --worker-count 8 --input-size 200 --chunk-size 32768 https://s3.eu-west-2.amazonaws.com/cam-cloud-computing-data-source/data-200MB.txt

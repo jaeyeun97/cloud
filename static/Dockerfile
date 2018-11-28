@@ -1,6 +1,9 @@
-FROM ubuntu:16.04
+FROM python:3
+
+WORKDIR /usr/src/app
+
+COPY requirements.txt ./
 COPY staticScheduler.py ./
 RUN pip install --no-cache-dir -r requirements.txt
-WORKDIR /
-ENTRYPOINT ["python"]
+
 CMD ["python", "./staticScheduler.py"]

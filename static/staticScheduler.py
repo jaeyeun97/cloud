@@ -6,17 +6,18 @@ import json
 
 from kubernetes import client, config, watch
 
-config.load_kube_config()
+#config.load_kube_config()
+config.load_incluster_config()
 v1=client.CoreV1Api()
 
 scheduler_name = "staticScheduler"
 
 def getFileSizes():
     pod_list = v1.list_namespaced_pod("default")
-    custom_master_pods = filter(lambda x : x.metadata.labels["appType"] == "custom_master" and x.status.phase == "Running" : x, pod_list)
-    spark_master_pods = filter(lambda x : x.metadata.labels["appType"] == "spark_master" and x.status.phase == "Running" : x, pod_list)
+    custom_master_pods = filter(lambda x : x.metadata.labels["appType"] == "custom_master" and x.status.phase == "Running", pod_list)
+    spark_master_pods = filter(lambda x : x.metadata.labels["appType"] == "spark_master" and x.status.phase == "Running", pod_list)
     if len(custom_master_pods) == 1 and len(spark_master_pods) == 1:
-        return [int(custom_master_pods[0]..metadata.labels["inputSize"]), int(spark_master_pods[0]..metadata.labels["inputSize"])]
+        return [int(custom_master_pods[0].metadata.labels["inputSize"]), int(spark_master_pods[0].metadata.labels["inputSize"])]
     else:
         return [0,0]
 
@@ -26,14 +27,14 @@ def workersAllowed(app, filesizes): #app = 'spark' or 'custom'
     #spark = round( available * ( ratio / ratio+1 ))
     #custom = available - spark
     if app == "spark":
-        return 3
+        return 5
     else:
-        return 7
+        return 2
 
 def workersAlreadyRunning(app): #app = 'spark' or 'custom'
     pod_list = v1.list_namespaced_pod("default")
     #phase can be Pending / Running / Succeeded / Failed / Unknown
-    working_pod_list = filter(lambda x : x.metadata.labels["appType"] == app and x.status.phase == "Running" : x, pod_list)
+    working_pod_list = filter(lambda x : x.metadata.labels["appType"] == app and x.status.phase == "Running", pod_list)
     return(len(working_pod_list))
 
 def nodes_available():
@@ -78,7 +79,7 @@ def main():
                 try:
                     res = scheduler(event['object'].metadata.name, random.choice(nodes_available()))
                 except client.rest.ApiException as e:
-                    print json.loads(e.body)['message']
+                    print(json.loads(e.body)['message'])
             else:
                 v1.delete_namespaced_pod(event['object'].metadata.name, 'default')
 

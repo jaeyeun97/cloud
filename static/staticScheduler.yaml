@@ -1,29 +1,10 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: staticScheduler
-  namespace: kube-system
----
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: staticScheduler-as-kube-scheduler
-subjects:
-- kind: ServiceAccount
-  name: staticScheduler
-  namespace: kube-system
-roleRef:
-  kind: ClusterRole
-  name: kube-scheduler
-  apiGroup: rbac.authorization.k8s.io
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
     component: scheduler
     tier: control-plane
-  name: staticScheduler
+  name: staticscheduler
   namespace: kube-system
 spec:
   selector:
@@ -36,32 +17,17 @@ spec:
       labels:
         component: scheduler
         tier: control-plane
-        version: second
     spec:
-      serviceAccountName: staticScheduler
+      serviceAccountName: staticscheduler
       containers:
-      - command:
-        - /usr/local/bin/kube-scheduler
-        - --address=0.0.0.0
-        - --leader-elect=false
-        - --scheduler-name=staticScheduler
-        image: gcr.io/my-gcp-project/staticScheduler:1.0
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 10251
-          initialDelaySeconds: 15
-        name: kube-second-scheduler
-        readinessProbe:
-          httpGet:
-            path: /healthz
-            port: 10251
-        resources:
-          requests:
-            cpu: '0.1'
-        securityContext:
-          privileged: false
+      - name: staticscheduler
+        image: jaeyeun97/staticscheduler
+        env:
+        - name: AWS_ACCESS_KEY_ID
+          value: 'AKIAJ6G7DAUEOXWO74QA'
+        - name: AWS_SECRET_ACCESS_KEY
+          value: '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'
+        - name: AWS_DEFAULT_REGION
+          value: eu-west-2
         volumeMounts: []
-      hostNetwork: false
-      hostPID: false
       volumes: []

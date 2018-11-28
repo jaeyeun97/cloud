@@ -40,8 +40,8 @@ def getmaxsecond(xs, total_num, spark_size, custom_size):
                       getseconds([[custom_size, total_num-xs[0]]], copts[0], copts[1])[0])
 
 
-total_num, spark_file_size, custom_file_size = 10, 200, 700
-result = minimize(getmaxsecond, [5], args=(total_num, spark_file_size, custom_file_size), bounds=((1, 9),))
+total_num, spark_file_size, custom_file_size = 10, 220, 700
+result = minimize(getmaxsecond, [5], args=(total_num, spark_file_size, custom_file_size), bounds=((1, total_num-1),))
 spark_num = round(result.x[0])
 custom_num = total_num - spark_num
 

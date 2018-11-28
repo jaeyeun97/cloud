@@ -1,1 +1,4 @@
 kubernetes
+numpy
+matplotlib
+scipy

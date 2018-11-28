@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit, minimize
 
 spark = dict()
@@ -35,16 +35,17 @@ copts, ccov = curve_fit(getseconds, xs, custom_y)
 
 
 # xs = spark node number
-def getmeansecond(xs, total_num, spark_size, custom_size):
-    return np.mean([getseconds([[spark_size, xs[0]]], sopts[0], sopts[1])[0],
-                    getseconds([[custom_size, total_num-xs[0]]], copts[0], copts[1])[0]])
+def getmaxsecond(xs, total_num, spark_size, custom_size):
+    return np.maximum(getseconds([[spark_size, xs[0]]], sopts[0], sopts[1])[0],
+                      getseconds([[custom_size, total_num-xs[0]]], copts[0], copts[1])[0])
 
 
-total_num, spark_file_size, custom_file_size = 10, 300, 700
-result = minimize(getmeansecond, [5], args=(total_num, spark_file_size, custom_file_size))
+total_num, spark_file_size, custom_file_size = 10, 220, 700
+result = minimize(getmaxsecond, [5], args=(total_num, spark_file_size, custom_file_size), bounds=((1, total_num-1),))
 spark_num = round(result.x[0])
 custom_num = total_num - spark_num
 
+print(result.x[0])
 print('Spark: {}, Custom: {}'.format(spark_num, custom_num))
 
 # x = np.linspace(100, 1000, 1000)

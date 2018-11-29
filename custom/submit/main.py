@@ -34,7 +34,7 @@ def uploadToS3(key, secret, file_url):
     return bucketName, filename
 
 
-def main(key, secret, file_url, chunk_size, master_image, worker_image, worker_count, worker_scheduler='kube-scheduler', input_size=0):
+def main(key, secret, file_url, chunk_size, master_image, worker_image, worker_count, worker_scheduler='default-scheduler', input_size=0):
     # read in configuration
     config.load_kube_config()
 
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     parser.add_argument('--master-image', dest='master_image', default='jaeyeun97/wordcount-master:latest', help='Master Docker Image')
     parser.add_argument('--worker-image', dest='worker_image', default='jaeyeun97/wordcount-worker:latest', help='Worker Docker Image')
     parser.add_argument('--worker-count', dest='worker_count', default='5', type=int, help='Number of workers to spawn')
-    parser.add_argument('--worker-scheduler', dest='worker_scheduler', default='kube-scheduler', help='Number of workers to spawn')
+    parser.add_argument('--worker-scheduler', dest='worker_scheduler', default='default-scheduler', help='Number of workers to spawn')
     args = parser.parse_args()
 
     username = None

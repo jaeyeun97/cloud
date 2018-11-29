@@ -27,7 +27,7 @@ build_%:
 	docker push $(USER_HANDLE)/$(IMG_PREFIX)$*
 
 run:
-	cd ./submit && python main.py --csv ../../credentials.csv --worker-count 5 --chunk-size 32768 https://www.cl.cam.ac.uk/teaching/1819/CloudComp/files/samples/sample-a.txt
+	cd ./submit && python main.py --csv ../../credentials.csv --worker-count 5 --chunk-size 32768 https://www.cl.cam.ac.uk/teaching/1819/CloudComp/files/samples/sample-f.txt
 
 runstatic:
 	cd ./submit && python main.py --csv ../../credentials.csv --worker-count 9 --input-size 200  --worker-scheduler staticscheduler --chunk-size 32768 https://www.cl.cam.ac.uk/teaching/1819/CloudComp/files/samples/sample-a.txt

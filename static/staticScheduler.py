@@ -1,6 +1,7 @@
 import time
 import random
 import json
+import getsize
 
 from kubernetes import client, config, watch
 
@@ -32,14 +33,13 @@ def getFileSizes():
 
 def workersAllowed(app, filesizes): #app = 'spark' or 'custom'
     #calculating number of nodes to allocate
-    #ratio = ourfunct(filesize)
-    #spark = round( available * ( ratio / ratio+1 ))
-    #custom = available - spark
-    print(app)
+    #using getsize.py
+    nodeCount = 10
+    spark = getsize.spark(nodeCount, filesizes[0], filesizes[1])
     if app == "group2-spark-worker":
-        return 3
+        return spark - 1
     else:
-        return 4
+        return nodeCount - spark - 1
 
 def workersAlreadyRunning(app):  # app = 'spark' or 'custom'
     if app == 'group2-spark-worker' or app == 'group2-custom-worker':
@@ -105,9 +105,10 @@ def main():
                 else:
                     break
             #check if there's already enough workers or not
-            war = workersAlreadyRunning(label)
-            print("{} workers already running".format(war))
-            if war < workersAllowed(label, [200, 500]):
+            alreadyRunning = workersAlreadyRunning(label)
+            allowed = workersAllowed(label, fileSizes)
+            print("{} workers already running / {} allowed".format(alreadyRunning, allowed))
+            if alreadyRunning < allowed:
                 if name not in podSeen[label]:
                     print("okay I can assign a node")
                     nodesAvailable = nodes_available()

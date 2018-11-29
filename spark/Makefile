@@ -41,7 +41,7 @@ run:
 	--conf "spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem" \
 	--conf "spark.hadoop.fs.s3a.access.key=AKIAJ6G7DAUEOXWO74QA" \
 	--conf "spark.hadoop.fs.s3a.secret.key=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" \
-	file:///opt/spark/work-dir/step2.py "s3a://cam-cloud-computing-data-source/data-500MB.txt"
+	file:///opt/spark/work-dir/step2.py "s3://cam-cloud-computing-data-source/data-200MB.txt"
 
 runstatic:
 	${SPARK}/bin/spark-submit \
@@ -61,7 +61,7 @@ runstatic:
 	--conf "spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem" \
 	--conf "spark.hadoop.fs.s3a.access.key=AKIAJ6G7DAUEOXWO74QA" \
 	--conf "spark.hadoop.fs.s3a.secret.key=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" \
-	file:///opt/spark/work-dir/step2.py "s3a://cam-cloud-computing-data-source/data-200MB.txt"
+	file:///opt/spark/work-dir/step2.py "s3://cam-cloud-computing-data-source/data-200MB.txt"
 
 
 

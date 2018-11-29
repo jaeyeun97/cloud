@@ -3,6 +3,9 @@ import csv
 import subprocess
 import os
 import argparse
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.orm import sessionmaker
 
 prompt_text = """
 0: Exit
@@ -16,6 +19,12 @@ prompt_text = """
     31: Get the admin password
     32: Get the admin service account token
 4: Delete the cluster
+5: Run Spark WordLetterCount App URL
+    51: View Spark App
+    52: Show Output
+6: Run Custom-built WordLetterCount App URL chunk-size
+    61: View Custom-built App
+    62: Show Output
 
 Please enter your choice: [#] """
 
@@ -55,6 +64,40 @@ get_token_template = 'kops get secrets admin --type secret -oplaintext --name {c
 
 # Delete Cluster
 delete_template = 'kops delete cluster {cluster_name} --yes'
+
+
+engine = create_engine('mysql+pymysql://group2:group2sibal@group2dbinstance.cxezedslevku.eu-west-2.rds.amazonaws.com/sw777_CloudComputingCoursework')
+SQLSession = sessionmaker(bind=engine)
+Base = declarative_base()
+log = open('log.txt', 'w+')
+
+
+class Word(Base):
+    __tablename__ = 'words_custom'
+    rank = Column(Integer, primary_key=True, autoincrement=False)
+    word = Column(String(40))
+    category = Column(String(40))
+    frequency = Column(Integer)
+
+    def __init__(self, rank, word, category, frequency):
+        self.rank = rank
+        self.word = word,
+        self.category = category
+        self.frequency = frequency
+
+
+class Letter(Base):
+    __tablename__ = 'letters_custom'
+    rank = Column(Integer, primary_key=True, autoincrement=False)
+    letter = Column(String(5))
+    category = Column(String(40))
+    frequency = Column(Integer)
+
+    def __init__(self, rank, letter, category, frequency):
+        self.rank = rank
+        self.letter = letter,
+        self.category = category
+        self.frequency = frequency
 
 
 class Shibal(object):
@@ -124,7 +167,11 @@ class Shibal(object):
         p = None
         while True:
             prompt = input(prompt_text)
-            prompt = int(prompt)
+            try:
+                prompt = int(prompt)
+            except Exception:
+                print("Input an Integer")
+                continue
             if prompt == 0:
                 if p:
                     p.terminate()
@@ -163,7 +210,8 @@ class Shibal(object):
             elif prompt == 23:
                 # Access Dashboard
                 access_dashboard_command = access_dashboard_template.format(**self.default_options).split()
-                p = subprocess.Popen(access_dashboard_command, env=self.environ)
+                if p is None:
+                    p = subprocess.Popen(access_dashboard_command, env=self.environ)
                 try:
                     p.communicate(timeout=1)
                 except Exception:
@@ -184,6 +232,18 @@ class Shibal(object):
                     p.terminate()
                 delete_command = delete_template.format(**self.default_options).split()
                 subprocess.call(delete_command, env=self.environ)
+            elif prompt == 5:
+                pass
+            elif prompt == 51:
+                pass
+            elif prompt == 52:
+                pass
+            elif prompt == 6:
+                pass
+            elif prompt == 61:
+                pass
+            elif prompt == 62:
+                pass
 
 
 if __name__ == "__main__":

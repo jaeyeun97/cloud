@@ -36,8 +36,8 @@ run:
 	--conf spark.app.name=wordCount \
 	--conf spark.executor.instances=3 \
 	--conf spark.kubernetes.driver.label.inputSize=200 \
-	--conf spark.kubernetes.driver.label.appType=spark_master \
-	--conf spark.kubernetes.executor.label.appType=spark_worker \
+	--conf spark.kubernetes.driver.label.run=spark_master \
+	--conf spark.kubernetes.executor.label.run=spark_worker \
 	--conf spark.kubernetes.executor.schedulerName=staticscheduler \
 	--conf spark.kubernetes.container.image=jaeyeun97/wordcount:latest \
 	--conf spark.kubernetes.container.image.pullPolicy=Always \

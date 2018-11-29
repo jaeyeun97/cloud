@@ -10,8 +10,14 @@ all: build run
 
 build:
 	docker build -t ${PROJ_NAME}:latest .
-	docker tag ${PROJ_NAME} ${REPO}/${PROJ_NAME}
-	docker push ${REPO}/${PROJ_NAME}
+	docker tag ${PROJ_NAME}:latest ${REPO}/${PROJ_NAME}:latest
+	docker push ${REPO}/${PROJ_NAME}:latest
+
+buildstatic:
+	docker build -f Dockerfile.static -t ${PROJ_NAME}:static .
+	docker tag ${PROJ_NAME}:static ${REPO}/${PROJ_NAME}:static
+	docker push ${REPO}/${PROJ_NAME}:static
+
 
 runlocal:
 	${SPARK}/bin/spark-submit \

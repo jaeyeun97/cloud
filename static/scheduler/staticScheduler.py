@@ -8,18 +8,17 @@ log = open('log.txt', 'w+')
 
 config.load_incluster_config()
 v1 = client.CoreV1Api()
+delete_option = client.V1DeleteOptions()
 
 scheduler_name = "staticscheduler"
 
-scheduled_custom = {}
-scheduled_spark = {}
-
+podSeen = dict()
 
 def getFileSizes():
     log.write("trying to get filesizes\n")
     log.flush()
-    custom_master_pods = v1.list_namespaced_pod("default", label_selector="appType==custom_master", limit=1).items
-    spark_master_pods = v1.list_namespaced_pod("default", label_selector="appType==spark_master", limit=1).items
+    custom_master_pods = v1.list_namespaced_pod("default", label_selector="run==group2-custom-master", limit=1).items
+    spark_master_pods = v1.list_namespaced_pod("default", label_selector="run==group2-spark-master", limit=1).items
     log.write("length of cmp: {}\n".format(len(list(custom_master_pods))))
     log.write("length of smp: {}\n".format(len(list(spark_master_pods))))
     for v in custom_master_pods:
@@ -44,19 +43,11 @@ def workersAllowed(app, filesizes): #app = 'spark' or 'custom'
     else:
         return 2
 
-
 def workersAlreadyRunning(app):  # app = 'spark' or 'custom'
-    log.write("getting workersAlreadyRunning\n")
-    log.flush()
-    pod_list = v1.list_namespaced_pod("default", label_selector="appType=={}".format(app)).items
-    #phase can be Pending / Running / Succeeded / Failed / Unknown
-    running_pods = []
-    for p in pod_list:
-        print("detected pod: {}, phase: {}".format(p.metadata.name, p.status.phase))
-        if p.status.phase == "Running":
-            running_pods.append(p.metadata.name)
-    print("running_pods: {}\n".format(running_pods))
-    return(len(running_pods))
+    if app == 'group2_spark_worker' or app == 'group2_custom_worker':
+        return len([k for k, v in podSeen[app] if v == 'running'])
+    else:
+        return 9999
 
 
 def nodes_available():
@@ -92,11 +83,17 @@ def main():
     w = watch.Watch()
     for event in w.stream(v1.list_namespaced_pod, "default"):
         pod = event['object']
-        print("I've got this pod: {}\n".format(pod.metadata.labels['run']))
-        print("phase: {} \t scheduler_name: {} \t appType: {} \n".format(pod.status.phase, pod.spec.scheduler_name, pod.metadata.labels['appType']))
-        appType = event['object'].metadata.labels['appType']
-        print("should I try scheduling this? --appType: {}, phase: {}, name: {}".format(appType, pod.status.phase, pod.spec.scheduler_name))
-        if pod.status.phase == "Pending" and pod.spec.scheduler_name == scheduler_name:
+        name = pod.metadata.name
+        label = pod.metadata.labels['run']
+        # labels = {group2-custom-worker, group2-spark-worker}
+        if label not in podSeen:
+            podSeen[label] = dict()
+        print("Got a pod - name: {}\tphase: {}\tscheduler_name: {}\tappType: {} \n".format(name, pod.status.phase, pod.spec.scheduler_name, appType))
+
+        #phase = Pending / Running / Succeeded / Failed / Unknown
+        if pod.status.phase == 'Succeeded':
+            podSeen[label][name] = 'Succeeded'
+        elif pod.status.phase == "Pending" and pod.spec.scheduler_name == scheduler_name:
             log.write("okay on this pod, let's start \n")
             log.flush()
             #wait if we don't see both drivers for custom & spark
@@ -110,21 +107,24 @@ def main():
                 else:
                     break
             #check if there's already enough workers or not
-            war = workersAlreadyRunning(appType)
+            war = workersAlreadyRunning(label)
             print("{} workers already running".format(war))
-            if war < workersAllowed(appType, [200, 500]):
+            if war < workersAllowed(label, [200, 500]):
                 print("okay I can assign a node\n")
                 nodesAvailable = nodes_available()
                 try:
                     node = random.choice(nodesAvailable)
-                    res = scheduler(pod.metadata.name, node)
+                    podSeen[label][name] = 'running'
+                    res = scheduler(name, node)
                 except client.rest.ApiException as e:
                     log.write(json.loads(e.body)['message'])
                     log.flush()
             else:
                 print("I shouldn't assign a node")
-                body = client.V1DeleteOptions()
-                v1.delete_namespaced_pod(event['object'].metadata.name, 'default', body)
+                if name not in podSeen[label]:
+                    podSeen[label][name] = 'Deleted'
+                    v1.delete_namespaced_pod(pod.metadata.name, 'default', delete_option)
+
 
 if __name__ == '__main__':
     main()

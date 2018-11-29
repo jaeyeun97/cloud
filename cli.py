@@ -3,6 +3,7 @@ import csv
 import subprocess
 import os
 import argparse
+import re
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import sessionmaker
@@ -233,7 +234,14 @@ class Shibal(object):
                 delete_command = delete_template.format(**self.default_options).split()
                 subprocess.call(delete_command, env=self.environ)
             elif prompt == 5:
-                pass
+                # Spark Run
+                url = input('URL: ')
+                file_name = os.path.basename(url)
+                match = re.match(r'data-(.*)MB.txt', file_name)
+                if match:
+                    file_size = int(match.group(1))
+                else:
+                    print("Wrong Format")
             elif prompt == 51:
                 pass
             elif prompt == 52:

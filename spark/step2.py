@@ -27,7 +27,7 @@ if len(sys.argv) < 2:
 else:
     url = sys.argv[1]
     if url.startswith('s3://'):
-        url.replace('s3://', 's3a://')
+        url = url.replace('s3://', 's3a://')
 
 filtered = sc.textFile(url) \
             .flatMap(lambda x: re.split(delimiters, x)) \

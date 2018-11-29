@@ -1,4 +1,0 @@
-kubernetes
-numpy
-matplotlib
-scipy

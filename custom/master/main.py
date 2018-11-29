@@ -72,6 +72,7 @@ file_name = os.environ['FILE_NAME']
 chunk_size = int(os.environ['CHUNK_SIZE'])
 worker_count = int(os.environ['WORKER_COUNT'])
 worker_image = os.environ['WORKER_IMAGE']
+scheduler_name = os.environ['WORKER_SCHEDULER'] if 'WORKER_SCHEDULER' in os.environ else 'default-scheduler'
 newline = '\n'.encode()
 
 config.load_incluster_config()
@@ -119,7 +120,8 @@ def spawnWorkers():
             'bucket_name': bucket_name,
             'file_name': file_name,
             'worker_image': worker_image,
-            'worker_num': i+1
+            'worker_num': i+1,
+            'scheduler_name': scheduler_name
         }).format())
         resp = api.create_namespaced_pod(body=conf, namespace="default")
 

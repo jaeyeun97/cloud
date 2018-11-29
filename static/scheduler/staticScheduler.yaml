@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: staticscheduler
+  namespace: kube-system
+  labels:
+    component: schleduer
+    tier: control-plane
+spec:
+  serviceAccountName: staticscheduler
+  restartPolicy: Never
+  containers:
+  - name: staticscheduler
+    image: jaeyeun97/staticscheduler:latest
+    imagePullPolicy: Always

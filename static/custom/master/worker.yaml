@@ -4,7 +4,6 @@ metadata:
   name: group2-custom-worker-{worker_num}
   labels:
     run: group2-custom-worker
-    appType: custom_worker
 spec:
   restartPolicy: Never
   schedulerName: staticscheduler

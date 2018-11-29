@@ -129,7 +129,7 @@ def main():
                     podSeen[label][name] = 'Deleted'
                     try:
                         v1.delete_namespaced_pod(pod.metadata.name, 'default', delete_option)
-                    except ApiException:
+                    except client.rest.ApiException:
                         print('ApiException as expected for double deleting')
 
 if __name__ == '__main__':

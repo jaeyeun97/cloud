@@ -22,14 +22,17 @@ runlocal:
 		--conf "spark.hadoop.fs.s3a.secret.key=BaGy0PVJlD0rc9qk0/H814sExdvmEGDRnvRqFSED" \
 		./step2.py "s3a://cam-cloud-computing-data-source/data-200MB.txt"
 
+init:
+	kubectl create -f driver.sva.yaml
+	kubectl create -f driver.crb.yaml
+
 run:
 	${SPARK}/bin/spark-submit \
 	--master k8s://http://localhost:8001 \
-  --deploy-mode cluster \
-  --name wordCount \
-	--conf spark.kubernetes.executor.label.['appType']=spark
+  	--deploy-mode cluster \
+  	--name wordCount \
 	--conf spark.app.name=wordCount \
-  --conf spark.executor.instances=1 \
+  	--conf spark.executor.instances=1 \
 	--conf spark.kubernetes.container.image=jaeyeun97/wordcount:latest \
 	--conf spark.kubernetes.container.image.pullPolicy=Always \
 	--conf spark.kubernetes.authenticate.driver.serviceAccountName=spark  \
@@ -50,7 +53,7 @@ runstatic:
 	--conf spark.kubernetes.driver.label.inputSize=200 \
 	--conf spark.kubernetes.driver.label.run=group2-spark-master \
 	--conf spark.kubernetes.executor.label.run=group2-spark-worker \
-	--conf spark.kubernetes.container.image=jaeyeun97/wordcount:latest \
+	--conf spark.kubernetes.container.image=jaeyeun97/wordcount:static \
 	--conf spark.kubernetes.container.image.pullPolicy=Always \
 	--conf spark.kubernetes.authenticate.driver.serviceAccountName=spark \
 	--conf spark.kubernetes.pyspark.pythonVersion=3 \

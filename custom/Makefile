@@ -27,4 +27,10 @@ build_%:
 	docker push $(USER_HANDLE)/$(IMG_PREFIX)$*
 
 run:
-	cd ./submit && python main.py --csv ../../credentials.csv --worker-count 1 --chunk-size 32768 https://s3.eu-west-2.amazonaws.com/cam-cloud-computing-data-source/data-500MB.txt
+	cd ./submit && python main.py --csv ../../credentials.csv --worker-count 5 --chunk-size 32768 https://www.cl.cam.ac.uk/teaching/1819/CloudComp/files/samples/sample-a.txt
+
+runstatic:
+	cd ./submit && python main.py --csv ../../credentials.csv --worker-count 9 --input-size 200  --worker-scheduler staticscheduler --chunk-size 32768 https://www.cl.cam.ac.uk/teaching/1819/CloudComp/files/samples/sample-a.txt
+	 
+
+

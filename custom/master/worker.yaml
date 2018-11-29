@@ -6,6 +6,7 @@ metadata:
     run: group2-custom-worker
 spec:
   restartPolicy: Never
+  schedulerName: {scheduler_name}
   containers:
   - name: wordcount-worker
     image: {worker_image}

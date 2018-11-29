@@ -6,7 +6,10 @@ spark_%:
 custom_%:
 	$(MAKE) -C custom $*
 
-build: spark_build custom_build
+static_%:
+	$(MAKE) -C static $*
+
+build: spark_build custom_build static_build
 
 delete: custom_delete
 

@@ -4,7 +4,7 @@ metadata:
   name: group2-custom-master
   labels:
     run: group2-custom-master
-    appType: custom
+    inputSize: '{input_size}'
 spec:
   restartPolicy: Never
   containers:
@@ -29,6 +29,8 @@ spec:
       value: {worker_image}
     - name: WORKER_COUNT
       value: '{worker_count}'
+    - name: WORKER_SCHEDULER
+      value: '{worker_scheduler}'
     - name: PYTHONUNBUFFERED
       value: '0'
   serviceAccountName: group2-custom-account

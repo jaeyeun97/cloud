@@ -1,37 +1,27 @@
-apiVersion: extensions/v1beta1
-kind: DaemonSet
+apiVersion: v1
+kind: Pod
 metadata:
+  name: group2-spark-shuffle
   labels:
     run: group2-spark-shuffle
-  name: shuffle
+    spark-version: 2.4.0
 spec:
-  template:
-    metadata:
-      labels:
-        app: spark-shuffle-service
-        spark-version: 2.4.0
-    spec:
-      serviceAccountName: spark
-      volumes:
-        - name: temp-volume
-          hostPath:
-            path: '/tmp/spark-local' # change this path according to your cluster configuration.
-      containers:
-        - name: shuffle
-          # This is an official image that is built
-          # from the dockerfiles/shuffle directory
-          # in the spark distribution.
-          image: jaeyeun97/spark-shuffle 
-          imagePullPolicy: IfNotPresent
-          volumeMounts:
-            - mountPath: '/tmp/spark-local'
-              name: temp-volume
-              # more volumes can be mounted here.
-              # The spark job must be configured to use these
-              # mounts using the configuration:
-              #   spark.kubernetes.shuffle.dir=<mount-1>,<mount-2>,...
-          resources:
-             requests:
-               cpu: "1"
-             limits:
-               cpu: "1"
+  serviceAccountName: spark
+  volumes:
+    - name: temp-volume
+      hostPath:
+        path: '/tmp/spark-local' # change this path according to your cluster configuration.
+  containers:
+    - name: group2-spark-shuffle
+      # This is an official image that is built
+      # from the dockerfiles/shuffle directory
+      # in the spark distribution.
+      image: jaeyeun97/spark-shuffle
+      imagePullPolicy: Always
+      volumeMounts:
+        - mountPath: '/tmp/spark-local'
+          name: temp-volume
+          # more volumes can be mounted here.
+          # The spark job must be configured to use these
+          # mounts using the configuration:
+          #   spark.kubernetes.shuffle.dir=<mount-1>,<mount-2>,...

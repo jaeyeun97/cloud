@@ -33,9 +33,8 @@ run:
 	--master k8s://http://localhost:8001 \
 	--deploy-mode cluster \
 	--name wordCount \
-  	--conf spark.executor.instances=8 \
 	--conf spark.app.name=wordCount \
-	--conf spark.executor.instances=8 \
+	--conf spark.executor.instances=9 \
 	--conf spark.kubernetes.driver.label.inputSize=200 \
 	--conf spark.kubernetes.driver.label.run=group2-spark-master \
 	--conf spark.kubernetes.executor.label.run=group2-spark-worker \
@@ -50,11 +49,12 @@ run:
 	file:///opt/spark/work-dir/step2.py "s3a://cam-cloud-computing-data-source/data-200MB.txt"
 
 
-#--conf spark.dynamicAllocation.enabled=true \
-#	--conf spark.shuffle.service.enabled=true \
-#--conf spark.dynamicAllocation.minExecutors=0 \
-#--conf spark.dynamicAllocation.maxExecutors=1 \
-
+# --conf spark.dynamicAllocation.enabled=true \
+# 	--conf spark.shuffle.service.enabled=true \
+# 	--conf spark.dynamicAllocation.minExecutors=0 \
+# 	--conf spark.dynamicAllocation.maxExecutors=10 \
+# 	--conf spark.kubernetes.shuffle.namespace=default \
+#   --conf spark.kubernetes.shuffle.labels="run=group2-spark-shuffle-service" \
 # --conf spark.kubernetes.executor.schedulerName=staticscheduler \
 # kubectl create serviceaccount spark
 # kubectl create clusterrolebinding spark-role --clusterrole=edit --serviceaccount=default:spark --namespace=default

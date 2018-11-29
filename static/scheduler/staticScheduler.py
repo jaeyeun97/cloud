@@ -21,9 +21,8 @@ def getFileSizes():
     spark_master_pods = v1.list_namespaced_pod("default", label_selector="run==group2-spark-master", limit=1).items
     log.write("length of cmp: {}\n".format(len(list(custom_master_pods))))
     log.write("length of smp: {}\n".format(len(list(spark_master_pods))))
-    for v in custom_master_pods:
-        log.write("cmp: appType: {}, phase: {}, inputSize: {}\n".format(v.metadata.labels["appType"], v.status.phase, v.metadata.labels["inputSize"]))
-    log.flush()
+    for v in spark_master_pods:
+        print("cmp: appType: {}, phase: {}, inputSize: {}\n".format(v.metadata.labels["appType"], v.status.phase, v.metadata.labels["inputSize"]))
     #TODO: change or to and for running both custom and spark
     if len(list(custom_master_pods)) == 1 or len(list(spark_master_pods)) == 1:
         return [0, int(spark_master_pods[0].metadata.labels["inputSize"])]
@@ -44,11 +43,7 @@ def workersAllowed(app, filesizes): #app = 'spark' or 'custom'
         return 4
 
 def workersAlreadyRunning(app):  # app = 'spark' or 'custom'
-<<<<<<< HEAD
-    if app == 'group2_spark_worker' or app == 'group2_custom_worker':
-=======
     if app == 'group2-spark-worker' or app == 'group2-custom-worker':
->>>>>>> cada79a1e59344cc7e6a446048f02d1cab903672
         return len([k for k, v in podSeen[app].items() if v == 'running'])
     else:
         return 9999
@@ -101,8 +96,7 @@ def main():
             while True:
                 fileSizes = getFileSizes()
                 if fileSizes[1] == 0:
-                    print("filesizes: {}".format(fileSizes))
-                    print("falling asleep\n")
+                    print("filesizes: {}, falling asleep".format(fileSizes))
                     time.sleep(5)
                 else:
                     break

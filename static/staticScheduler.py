@@ -20,7 +20,7 @@ def getFileSizes():
     custom_master_pods = v1.list_namespaced_pod("default", label_selector="appType==custom_master", limit=1).items
     spark_master_pods = v1.list_namespaced_pod("default", label_selector="appType==spark_master", limit=1).items
     log.write("length of cmp: {}\n".format(len(list(custom_master_pods))))
-    log.write("length of smp: {}\n".format(len(list(custom_master_pods))))
+    log.write("length of smp: {}\n".format(len(list(spark_master_pods))))
     for v in custom_master_pods:
         log.write("cmp: appType: {}, phase: {}, inputSize: {}\n".format(v.metadata.labels["appType"], v.status.phase, v.metadata.labels["inputSize"]))
     log.flush()
@@ -68,7 +68,8 @@ def nodes_available():
             for status in n.status.conditions:
                 if status.status == "True" and status.type == "Ready":
                     ready_nodes.append(n.metadata.name)
-    log.write("ready_nodes: {}".format(ready_nodes))
+    log.write("ready_nodes: {}\n".format(ready_nodes))
+    print("ready_nodes: {}".format(ready_nodes))
     return ready_nodes
 
 def scheduler(name, node, namespace="default"):
@@ -95,6 +96,7 @@ def main():
         log.write("phase: {} \t scheduler_name: {} \t appType: {} \n".format(pod.status.phase, pod.spec.scheduler_name, pod.metadata.labels['appType']))
         log.flush()
         appType = event['object'].metadata.labels['appType']
+        print("should I try scheduling this? --appType: {}, phase: {}, name: {}".format(appType, pod.status.phase, pod.spec.scheduler_name))
         if pod.status.phase == "Pending" and pod.spec.scheduler_name == scheduler_name:
             log.write("okay on this pod, let's start \n")
             log.flush()
@@ -112,11 +114,14 @@ def main():
                     break
             #check if there's already enough workers or not
             #if workersAlreadyRunning(appType) < workersAllowed(appType, [200, 500]):
+            print("count: {}, workersAllowed: {}".format(count, workersAllowed(appType, [200, 500])))
             if count < workersAllowed(appType, [200, 500]):
                 log.write("okay I can assign a node\n")
                 log.flush()
+                nodesAvailable = nodes_available()
+                print("nodes available: {}".format(nodesAvailable))
                 try:
-                    res = scheduler(event['object'].metadata.name, random.choice(nodes_available()))
+                    res = scheduler(event['object'].metadata.name, random.choice(nodesAvailable))
                     count += 1
                 except client.rest.ApiException as e:
                     log.write(json.loads(e.body)['message'])

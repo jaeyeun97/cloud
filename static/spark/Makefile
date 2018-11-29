@@ -34,7 +34,7 @@ run:
   --deploy-mode cluster \
   --name wordCount \
 	--conf spark.app.name=wordCount \
-	--conf spark.executor.instances=3 \
+	--conf spark.executor.instances=8 \
 	--conf spark.kubernetes.driver.label.inputSize=200 \
 	--conf spark.kubernetes.driver.label.run=group2-spark-master \
 	--conf spark.kubernetes.executor.label.run=group2-spark-worker \

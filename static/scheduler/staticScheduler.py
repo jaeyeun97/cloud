@@ -41,11 +41,11 @@ def workersAllowed(app, filesizes): #app = 'spark' or 'custom'
     if app == "spark":
         return 5
     else:
-        return 2
+        return 4
 
 def workersAlreadyRunning(app):  # app = 'spark' or 'custom'
-    if app == 'group2_spark_worker' or app == 'group2_custom_worker':
-        return len([k for k, v in podSeen[app] if v == 'running'])
+    if app == 'group2-spark-worker' or app == 'group2-custom-worker':
+        return len([k for k, v in podSeen[app].items() if v == 'running'])
     else:
         return 9999
 
@@ -66,11 +66,7 @@ def scheduler(name, node, namespace="default"):
     meta = client.V1ObjectMeta(name=name)
     body = client.V1Binding(metadata=meta, target=target)
 
-    log.write("meta and target name: {} , {}\n".format(body.metadata.name, body.target.name))
-    print("meta and target name: {} , {}\n".format(body.metadata.name, body.target.name))
-    print("node name: {}".format(node))
-    print("pod name: {}".format(name))
-
+    print("assign {} to {}".format(body.target.name, body.metadata.name))
     res = None
     try:
         res = v1.create_namespaced_binding(namespace, body)
@@ -88,7 +84,7 @@ def main():
         # labels = {group2-custom-worker, group2-spark-worker}
         if label not in podSeen:
             podSeen[label] = dict()
-        print("Got a pod - name: {}\tphase: {}\tscheduler_name: {}\tappType: {} \n".format(name, pod.status.phase, pod.spec.scheduler_name, appType))
+        print("Got a pod - name: {}\tphase: {}\tscheduler_name: {}\tlabel: {} \n".format(name, pod.status.phase, pod.spec.scheduler_name, label))
 
         #phase = Pending / Running / Succeeded / Failed / Unknown
         if pod.status.phase == 'Succeeded':

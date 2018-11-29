@@ -17,3 +17,5 @@ deleteall:
 	kubectl delete pods --all
 
 run: spark_run custom_run
+
+runstatic: spark_runstatic custom_runstatic

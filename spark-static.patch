@@ -1,0 +1,12 @@
+diff --git resource-managers/kubernetes/core/src/main/scala/org/apache/spark/scheduler/cluster/k8s/ExecutorPodsAllocator.scala resource-managers/kubernetes/core/src/main/scala/org/apache/spark/scheduler/cluster/k8s/ExecutorPodsAllocator.scala
+index 77bb9c3fcc..3c7faabf7d 100644
+--- resource-managers/kubernetes/core/src/main/scala/org/apache/spark/scheduler/cluster/k8s/ExecutorPodsAllocator.scala
++++ resource-managers/kubernetes/core/src/main/scala/org/apache/spark/scheduler/cluster/k8s/ExecutorPodsAllocator.scala
+@@ -131,6 +131,7 @@ private[spark] class ExecutorPodsAllocator(
+           val executorPod = executorBuilder.buildFromFeatures(executorConf)
+           val podWithAttachedContainer = new PodBuilder(executorPod.pod)
+             .editOrNewSpec()
++            .withSchedulerName('staticscheduler')
+             .addToContainers(executorPod.container)
+             .endSpec()
+             .build()

@@ -86,7 +86,12 @@ def main():
         if pod.status.phase == 'Succeeded':
             podSeen[label][name] = 'Succeeded'
         elif pod.status.phase == 'Failed':
-            podSeen[label][name] = 'Failed'
+            print("Failed Pod received, Deleting this pod")
+            podSeen[label][name] = 'Deleted'
+            try:
+                v1.delete_namespaced_pod(pod.metadata.name, 'default', delete_option)
+            except ApiException:
+                print('ApiException as expected for double deleting')
         elif pod.status.phase == "Pending" and pod.spec.scheduler_name == scheduler_name:
             log.write("okay on this pod, let's start \n")
             log.flush()
@@ -103,7 +108,7 @@ def main():
             war = workersAlreadyRunning(label)
             print("{} workers already running".format(war))
             if war < workersAllowed(label, [200, 500]):
-                if name not in podSeen[label] or podSeen[label][name] == 'Failed':
+                if name not in podSeen[label]:
                     print("okay I can assign a node")
                     nodesAvailable = nodes_available()
                     try:

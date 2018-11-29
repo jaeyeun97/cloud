@@ -11,6 +11,10 @@ v1 = client.CoreV1Api()
 
 scheduler_name = "staticscheduler"
 
+scheduled_custom = {}
+scheduled_spark = {}
+
+
 def getFileSizes():
     log.write("trying to get filesizes\n")
     log.flush()
@@ -34,6 +38,7 @@ def workersAllowed(app, filesizes): #app = 'spark' or 'custom'
     #ratio = ourfunct(filesize)
     #spark = round( available * ( ratio / ratio+1 ))
     #custom = available - spark
+    print(app)
     if app == "spark":
         return 5
     else:
@@ -43,21 +48,15 @@ def workersAllowed(app, filesizes): #app = 'spark' or 'custom'
 def workersAlreadyRunning(app):  # app = 'spark' or 'custom'
     log.write("getting workersAlreadyRunning\n")
     log.flush()
-    pod_list = v1.list_namespaced_pod("default", label_selector="appType=={}".format(app), include_uninitialized=True)
+    pod_list = v1.list_namespaced_pod("default", label_selector="appType=={}".format(app)).items
     #phase can be Pending / Running / Succeeded / Failed / Unknown
     running_pods = []
-    for p in pod_list.items:
-        # print(p)
+    for p in pod_list:
+        print("detected pod: {}, phase: {}".format(p.metadata.name, p.status.phase))
         if p.status.phase == "Running":
             running_pods.append(p.metadata.name)
-    log.write("running_pods: {}\n".format(running_pods))
-    log.flush()
+    print("running_pods: {}\n".format(running_pods))
     return(len(running_pods))
-
-    working_pod_list = filter(lambda x: x.metadata.labels["appType"] == app and x.status.phase == "Running", pod_list)
-    log.write("wpl length: {}\n".format(len(list(working_pod_list))))
-    log.flush()
-    return(len(list(working_pod_list)))
 
 
 def nodes_available():
@@ -66,37 +65,31 @@ def nodes_available():
     ready_nodes = []
     for n in v1.list_node().items:
         for status in n.status.conditions:
-            print(status)
             if status.status == "True" and status.type == "Ready":
                 ready_nodes.append(n.metadata.name)
-    log.write("ready_nodes: {}\n".format(ready_nodes))
-    print("ready_nodes: {}".format(ready_nodes))
     return ready_nodes
 
 
 def scheduler(name, node, namespace="default"):
-    body = client.V1Binding()
-    target = client.V1ObjectReference()
-    target.kind = "Node"
-    target.apiVersion = "v1"
-    target.name = node
-
-    meta = client.V1ObjectMeta()
-    meta.name = name
-
-    body.metadata = meta
-    body.target = target
+    target = client.V1ObjectReference(kind="Node", api_version="v1", name=node)
+    meta = client.V1ObjectMeta(name=name)
+    body = client.V1Binding(metadata=meta, target=target)
 
     log.write("meta and target name: {} , {}\n".format(body.metadata.name, body.target.name))
     print("meta and target name: {} , {}\n".format(body.metadata.name, body.target.name))
     print("node name: {}".format(node))
     print("pod name: {}".format(name))
 
-    return v1.create_namespaced_binding(namespace, body)
+    res = None
+    try:
+        res = v1.create_namespaced_binding(namespace, body)
+    except ValueError:
+        print('ValueError as Expected')
+    finally:
+        return res
 
 def main():
     w = watch.Watch()
-    count = 0
     for event in w.stream(v1.list_namespaced_pod, "default"):
         pod = event['object']
         print("I've got this pod: {}\n".format(pod.metadata.labels['run']))
@@ -117,22 +110,21 @@ def main():
                 else:
                     break
             #check if there's already enough workers or not
-            #if workersAlreadyRunning(appType) < workersAllowed(appType, [200, 500]):
-            print("count: {}, workersAllowed: {}".format(count, workersAllowed(appType, [200, 500])))
-            if count < workersAllowed(appType, [200, 500]):
+            war = workersAlreadyRunning(appType)
+            print("{} workers already running".format(war))
+            if war < workersAllowed(appType, [200, 500]):
                 print("okay I can assign a node\n")
                 nodesAvailable = nodes_available()
                 try:
                     node = random.choice(nodesAvailable)
-                    print(node)
                     res = scheduler(pod.metadata.name, node)
-                    count += 1
                 except client.rest.ApiException as e:
                     log.write(json.loads(e.body)['message'])
                     log.flush()
             else:
                 print("I shouldn't assign a node")
-                v1.delete_namespaced_pod(event['object'].metadata.name, 'default')
+                body = client.V1DeleteOptions()
+                v1.delete_namespaced_pod(event['object'].metadata.name, 'default', body)
 
 if __name__ == '__main__':
     main()

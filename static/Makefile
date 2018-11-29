@@ -1,4 +1,4 @@
-all: custom_delete static_delete static_build
+all: custom_delete scheduler_delete scheduler_build
 
 spark_%:
 	$(MAKE) -C spark $*
@@ -6,14 +6,25 @@ spark_%:
 custom_%:
 	$(MAKE) -C custom $*
 
-static_%:
-	$(MAKE) -C custom $*
+scheduler_%:
+	$(MAKE) -C scheduler $*
 
 build: static_build spark_build custom_build
 
-delete: custom_delete
+delete: static_delete custom_delete
 
 deleteall:
 	kubectl delete pods --all
 
-run: static_delete custom_delete static_run custom_run
+run: scheduler_delete custom_delete scheduler_run custom_run
+
+scheduler_build:
+	docker build -t staticscheduler ./scheduler
+	docker tag staticscheduler jaeyeun97/staticscheduler
+	docker push jaeyeun97/staticscheduler
+
+scheduler_delete:
+	kubectl delete pod staticscheduler --namespace=kube-system || true
+
+scheduler_run:
+	kubectl create -f ./scheduler/staticScheduler.yaml

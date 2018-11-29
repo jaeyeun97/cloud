@@ -1,33 +1,15 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: Pod
 metadata:
-  labels:
-    component: scheduler
-    tier: control-plane
   name: staticscheduler
   namespace: kube-system
+  labels:
+    component: schleduer
+    tier: control-plane
 spec:
-  selector:
-    matchLabels:
-      component: scheduler
-      tier: control-plane
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        component: scheduler
-        tier: control-plane
-    spec:
-      serviceAccountName: staticscheduler
-      containers:
-      - name: staticscheduler
-        image: jaeyeun97/staticscheduler:latest
-        env:
-        - name: AWS_ACCESS_KEY_ID
-          value: 'AKIAJ6G7DAUEOXWO74QA'
-        - name: AWS_SECRET_ACCESS_KEY
-          value: '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'
-        - name: AWS_DEFAULT_REGION
-          value: eu-west-2
-        volumeMounts: []
-      volumes: []
+  serviceAccountName: staticscheduler
+  restartPolicy: Never
+  containers:
+  - name: staticscheduler
+    image: jaeyeun97/staticscheduler:latest
+    imagePullPolicy: Always

@@ -21,7 +21,7 @@ spec:
       serviceAccountName: staticscheduler
       containers:
       - name: staticscheduler
-        image: jaeyeun97/staticscheduler
+        image: jaeyeun97/staticscheduler:latest
         env:
         - name: AWS_ACCESS_KEY_ID
           value: 'AKIAJ6G7DAUEOXWO74QA'

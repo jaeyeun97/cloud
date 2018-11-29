@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import time
 import random
 import json
@@ -8,9 +6,8 @@ from kubernetes import client, config, watch
 
 log = open('log.txt', 'w+')
 
-#config.load_kube_config()
 config.load_incluster_config()
-v1=client.CoreV1Api()
+v1 = client.CoreV1Api()
 
 scheduler_name = "staticscheduler"
 
@@ -42,48 +39,58 @@ def workersAllowed(app, filesizes): #app = 'spark' or 'custom'
     else:
         return 2
 
-def workersAlreadyRunning(app): #app = 'spark' or 'custom'
+
+def workersAlreadyRunning(app):  # app = 'spark' or 'custom'
     log.write("getting workersAlreadyRunning\n")
     log.flush()
-    pod_list = v1.list_namespaced_pod("default", label_selector="appType=={}".format(app)).items
+    pod_list = v1.list_namespaced_pod("default", label_selector="appType=={}".format(app), include_uninitialized=True)
     #phase can be Pending / Running / Succeeded / Failed / Unknown
     running_pods = []
-    for p in pod_list:
+    for p in pod_list.items:
+        # print(p)
         if p.status.phase == "Running":
             running_pods.append(p.metadata.name)
     log.write("running_pods: {}\n".format(running_pods))
     log.flush()
     return(len(running_pods))
 
-    working_pod_list = filter(lambda x : x.metadata.labels["appType"] == app and x.status.phase == "Running", pod_list)
+    working_pod_list = filter(lambda x: x.metadata.labels["appType"] == app and x.status.phase == "Running", pod_list)
     log.write("wpl length: {}\n".format(len(list(working_pod_list))))
     log.flush()
     return(len(list(working_pod_list)))
+
 
 def nodes_available():
     log.write("getting nodes available \n")
     log.flush()
     ready_nodes = []
     for n in v1.list_node().items:
-            for status in n.status.conditions:
-                if status.status == "True" and status.type == "Ready":
-                    ready_nodes.append(n.metadata.name)
+        for status in n.status.conditions:
+            print(status)
+            if status.status == "True" and status.type == "Ready":
+                ready_nodes.append(n.metadata.name)
     log.write("ready_nodes: {}\n".format(ready_nodes))
     print("ready_nodes: {}".format(ready_nodes))
     return ready_nodes
 
+
 def scheduler(name, node, namespace="default"):
+    body = client.V1Binding()
+    target = client.V1ObjectReference()
+    target.kind = "Node"
+    target.apiVersion = "v1"
+    target.name = node
 
-    target=client.V1ObjectReference()
-    target.kind="Node"
-    target.apiVersion="v1"
-    target.name= node
+    meta = client.V1ObjectMeta()
+    meta.name = name
 
-    meta=client.V1ObjectMeta()
-    meta.name=name
+    body.metadata = meta
+    body.target = target
 
-    body=client.V1Binding(metadata=meta, target=target)
     log.write("meta and target name: {} , {}\n".format(body.metadata.name, body.target.name))
+    print("meta and target name: {} , {}\n".format(body.metadata.name, body.target.name))
+    print("node name: {}".format(node))
+    print("pod name: {}".format(name))
 
     return v1.create_namespaced_binding(namespace, body)
 
@@ -92,9 +99,8 @@ def main():
     count = 0
     for event in w.stream(v1.list_namespaced_pod, "default"):
         pod = event['object']
-        log.write("I've got this pod: {}\n".format(pod.metadata.labels['run']))
-        log.write("phase: {} \t scheduler_name: {} \t appType: {} \n".format(pod.status.phase, pod.spec.scheduler_name, pod.metadata.labels['appType']))
-        log.flush()
+        print("I've got this pod: {}\n".format(pod.metadata.labels['run']))
+        print("phase: {} \t scheduler_name: {} \t appType: {} \n".format(pod.status.phase, pod.spec.scheduler_name, pod.metadata.labels['appType']))
         appType = event['object'].metadata.labels['appType']
         print("should I try scheduling this? --appType: {}, phase: {}, name: {}".format(appType, pod.status.phase, pod.spec.scheduler_name))
         if pod.status.phase == "Pending" and pod.spec.scheduler_name == scheduler_name:
@@ -105,10 +111,8 @@ def main():
             while True:
                 fileSizes = getFileSizes()
                 if fileSizes[0] == 0:
-                    log.write("filesizes: {}".format(fileSizes))
-                    log.flush()
-                    log.write("falling asleep\n")
-                    log.flush()
+                    print("filesizes: {}".format(fileSizes))
+                    print("falling asleep\n")
                     time.sleep(5)
                 else:
                     break
@@ -116,19 +120,18 @@ def main():
             #if workersAlreadyRunning(appType) < workersAllowed(appType, [200, 500]):
             print("count: {}, workersAllowed: {}".format(count, workersAllowed(appType, [200, 500])))
             if count < workersAllowed(appType, [200, 500]):
-                log.write("okay I can assign a node\n")
-                log.flush()
+                print("okay I can assign a node\n")
                 nodesAvailable = nodes_available()
-                print("nodes available: {}".format(nodesAvailable))
                 try:
-                    res = scheduler(event['object'].metadata.name, random.choice(nodesAvailable))
+                    node = random.choice(nodesAvailable)
+                    print(node)
+                    res = scheduler(pod.metadata.name, node)
                     count += 1
                 except client.rest.ApiException as e:
                     log.write(json.loads(e.body)['message'])
                     log.flush()
             else:
-                log.write("I shouldn't assign a node")
-                log.flush()
+                print("I shouldn't assign a node")
                 v1.delete_namespaced_pod(event['object'].metadata.name, 'default')
 
 if __name__ == '__main__':

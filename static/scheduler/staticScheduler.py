@@ -26,7 +26,7 @@ def getFileSizes():
     log.flush()
     #TODO: change or to and for running both custom and spark
     if len(list(custom_master_pods)) == 1 or len(list(spark_master_pods)) == 1:
-        return [int(custom_master_pods[0].metadata.labels["inputSize"]), 0] #int(spark_master_pods[0].metadata.labels["inputSize"])]
+        return [0, int(spark_master_pods[0].metadata.labels["inputSize"])]
     else:
         return [0,0]
 
@@ -39,12 +39,16 @@ def workersAllowed(app, filesizes): #app = 'spark' or 'custom'
     #custom = available - spark
     print(app)
     if app == "spark":
-        return 5
+        return 3
     else:
-        return 2
+        return 4
 
 def workersAlreadyRunning(app):  # app = 'spark' or 'custom'
+<<<<<<< HEAD
     if app == 'group2_spark_worker' or app == 'group2_custom_worker':
+=======
+    if app == 'group2-spark-worker' or app == 'group2-custom-worker':
+>>>>>>> cada79a1e59344cc7e6a446048f02d1cab903672
         return len([k for k, v in podSeen[app].items() if v == 'running'])
     else:
         return 9999
@@ -66,11 +70,7 @@ def scheduler(name, node, namespace="default"):
     meta = client.V1ObjectMeta(name=name)
     body = client.V1Binding(metadata=meta, target=target)
 
-    log.write("meta and target name: {} , {}\n".format(body.metadata.name, body.target.name))
-    print("meta and target name: {} , {}\n".format(body.metadata.name, body.target.name))
-    print("node name: {}".format(node))
-    print("pod name: {}".format(name))
-
+    print("assign {} to {}".format(body.target.name, body.metadata.name))
     res = None
     try:
         res = v1.create_namespaced_binding(namespace, body)
@@ -88,7 +88,7 @@ def main():
         # labels = {group2-custom-worker, group2-spark-worker}
         if label not in podSeen:
             podSeen[label] = dict()
-        print("Got a pod - name: {}\tphase: {}\tscheduler_name: {}\tappType: {} \n".format(name, pod.status.phase, pod.spec.scheduler_name, appType))
+        print("Got a pod - name: {}\tphase: {}\tscheduler_name: {}\tlabel: {} \n".format(name, pod.status.phase, pod.spec.scheduler_name, label))
 
         #phase = Pending / Running / Succeeded / Failed / Unknown
         if pod.status.phase == 'Succeeded':
@@ -100,7 +100,7 @@ def main():
             fileSizes = []
             while True:
                 fileSizes = getFileSizes()
-                if fileSizes[0] == 0:
+                if fileSizes[1] == 0:
                     print("filesizes: {}".format(fileSizes))
                     print("falling asleep\n")
                     time.sleep(5)

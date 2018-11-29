@@ -13,3 +13,6 @@ spec:
   - name: staticscheduler
     image: jaeyeun97/staticscheduler:latest
     imagePullPolicy: Always
+    env:
+        - name: PYTHONUNBUFFERED
+          value: '0'

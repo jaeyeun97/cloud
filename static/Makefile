@@ -9,9 +9,9 @@ custom_%:
 scheduler_%:
 	$(MAKE) -C scheduler $*
 
-build: static_build spark_build custom_build
+build: scheduler_build spark_build custom_build
 
-delete: static_delete custom_delete
+delete: scheduler_delete custom_delete
 
 deleteall:
 	kubectl delete pods --all

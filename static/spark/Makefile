@@ -1,6 +1,6 @@
 PROJ_NAME=wordcount
 REPO=jaeyeun97
-SPARK=../../../spark-static
+SPARK=../../../spark
 
 export PYSPARK_PYTHON=python3
 

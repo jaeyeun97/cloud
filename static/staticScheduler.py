@@ -66,7 +66,7 @@ def scheduler(name, node, namespace="default"):
     res = None
     try:
         res = v1.create_namespaced_binding(namespace, body)
-    except ValueError:
+    except client.rest.ApiException:
         print('ValueError as Expected')
     finally:
         return res

@@ -17,7 +17,13 @@ podSeen = dict()
 def getFileSizes():
     custom_master_pods = v1.list_namespaced_pod("default", label_selector="run==group2-custom-master", limit=1).items
     spark_master_pods = v1.list_namespaced_pod("default", label_selector="run==group2-spark-master", limit=1).items
-    print("got inputsizes/ custom: {} , spark: {}".format(int(custom_master_pods[0].metadata.labels["inputSize"]), int(spark_master_pods[0].metadata.labels["inputSize"])))
+
+    if len(list(custom_master_pods)) == 1 and len(list(spark_master_pods)) == 0:
+        print("got inputsizes/ custom: {} , spark: {}".format(int(custom_master_pods[0].metadata.labels["inputSize"]), "N/A"))
+    elif len(list(custom_master_pods)) == 0 and len(list(spark_master_pods)) == 1:
+        print("got inputsizes/ custom: {} , spark: {}".format("N/A", int(spark_master_pods[0].metadata.labels["inputSize"])))
+    else:
+        print("got inputsizes/ custom: {} , spark: {}".format(int(custom_master_pods[0].metadata.labels["inputSize"]), int(spark_master_pods[0].metadata.labels["inputSize"])))
     #TODO: change or to and for running both custom and spark
     if len(list(custom_master_pods)) == 1 and len(list(spark_master_pods)) == 1:
         return [int(custom_master_pods[0].metadata.labels["inputSize"]), int(spark_master_pods[0].metadata.labels["inputSize"])]
@@ -97,7 +103,7 @@ def main():
             war = workersAlreadyRunning(label)
             print("{} workers already running".format(war))
             if war < workersAllowed(label, [200, 500]):
-                if name not in podSeen[label]:
+                if name not in podSeen[label] or podSeen[label][name] == 'Failed':
                     print("okay I can assign a node")
                     nodesAvailable = nodes_available()
                     try:
@@ -116,8 +122,10 @@ def main():
                 if name not in podSeen[label]:
                     print("Deleting this pod")
                     podSeen[label][name] = 'Deleted'
-                    v1.delete_namespaced_pod(pod.metadata.name, 'default', delete_option)
-
+                    try:
+                        v1.delete_namespaced_pod(pod.metadata.name, 'default', delete_option)
+                    except ApiException:
+                        print('ApiException as expected for double deleting')
 
 if __name__ == '__main__':
     main()

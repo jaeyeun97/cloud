@@ -26,7 +26,7 @@ def getFileSizes():
     log.flush()
     #TODO: change or to and for running both custom and spark
     if len(list(custom_master_pods)) == 1 or len(list(spark_master_pods)) == 1:
-        return [int(custom_master_pods[0].metadata.labels["inputSize"]), 0] #int(spark_master_pods[0].metadata.labels["inputSize"])]
+        return [0, int(spark_master_pods[0].metadata.labels["inputSize"])]
     else:
         return [0,0]
 
@@ -39,7 +39,7 @@ def workersAllowed(app, filesizes): #app = 'spark' or 'custom'
     #custom = available - spark
     print(app)
     if app == "spark":
-        return 5
+        return 3
     else:
         return 4
 
@@ -96,7 +96,7 @@ def main():
             fileSizes = []
             while True:
                 fileSizes = getFileSizes()
-                if fileSizes[0] == 0:
+                if fileSizes[1] == 0:
                     print("filesizes: {}".format(fileSizes))
                     print("falling asleep\n")
                     time.sleep(5)

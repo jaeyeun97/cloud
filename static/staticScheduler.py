@@ -45,8 +45,16 @@ def workersAllowed(app, filesizes): #app = 'spark' or 'custom'
 def workersAlreadyRunning(app): #app = 'spark' or 'custom'
     log.write("getting workersAlreadyRunning\n")
     log.flush()
-    pod_list = v1.list_namespaced_pod("default").items
+    pod_list = v1.list_namespaced_pod("default", label_selector="appType=={}".format(app)).items
     #phase can be Pending / Running / Succeeded / Failed / Unknown
+    running_pods = []
+    for p in pod_list:
+        if p.status.phase == "Running":
+            running_pods.append(p.metadata.name)
+    log.write("running_pods: {}\n".format(running_pods))
+    log.flush()
+    return(len(running_pods))
+
     working_pod_list = filter(lambda x : x.metadata.labels["appType"] == app and x.status.phase == "Running", pod_list)
     log.write("wpl length: {}\n".format(len(list(working_pod_list))))
     log.flush()
@@ -80,6 +88,7 @@ def scheduler(name, node, namespace="default"):
 
 def main():
     w = watch.Watch()
+    count = 0
     for event in w.stream(v1.list_namespaced_pod, "default"):
         pod = event['object']
         log.write("I've got this pod: {}\n".format(pod.metadata.labels['run']))
@@ -102,11 +111,13 @@ def main():
                 else:
                     break
             #check if there's already enough workers or not
-            if workersAlreadyRunning(appType) < workersAllowed(appType, [200, 500]):
+            #if workersAlreadyRunning(appType) < workersAllowed(appType, [200, 500]):
+            if count < workersAllowed(appType, [200, 500]):
                 log.write("okay I can assign a node\n")
                 log.flush()
                 try:
                     res = scheduler(event['object'].metadata.name, random.choice(nodes_available()))
+                    count += 1
                 except client.rest.ApiException as e:
                     log.write(json.loads(e.body)['message'])
                     log.flush()

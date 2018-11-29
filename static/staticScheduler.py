@@ -17,10 +17,10 @@ podSeen = dict()
 def getFileSizes():
     custom_master_pods = v1.list_namespaced_pod("default", label_selector="run==group2-custom-master", limit=1).items
     spark_master_pods = v1.list_namespaced_pod("default", label_selector="run==group2-spark-master", limit=1).items
-    print("got inputsizes/ custom: {} , spark: {}".format(int(custom_master_pods[0].metadata.labels["inputSize"]), 'int(spark_master_pods[0].metadata.labels["inputSize"])'))
+    print("got inputsizes/ custom: {} , spark: {}".format(int(custom_master_pods[0].metadata.labels["inputSize"]), int(spark_master_pods[0].metadata.labels["inputSize"])))
     #TODO: change or to and for running both custom and spark
-    if len(list(custom_master_pods)) == 1 or len(list(spark_master_pods)) == 1:
-        return [int(spark_master_pods[0].metadata.labels["inputSize"]), 0]
+    if len(list(custom_master_pods)) == 1 and len(list(spark_master_pods)) == 1:
+        return [int(custom_master_pods[0].metadata.labels["inputSize"]), int(spark_master_pods[0].metadata.labels["inputSize"])]
     else:
         return [0,0]
 
@@ -30,7 +30,7 @@ def workersAllowed(app, filesizes): #app = 'spark' or 'custom'
     #spark = round( available * ( ratio / ratio+1 ))
     #custom = available - spark
     print(app)
-    if app == "spark":
+    if app == "group2-spark-worker":
         return 3
     else:
         return 4

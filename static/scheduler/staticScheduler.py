@@ -45,7 +45,7 @@ def workersAllowed(app, filesizes): #app = 'spark' or 'custom'
 
 def workersAlreadyRunning(app):  # app = 'spark' or 'custom'
     if app == 'group2_spark_worker' or app == 'group2_custom_worker':
-        return len([k for k, v in podSeen[app] if v == 'running'])
+        return len([k for k, v in podSeen[app].items() if v == 'running'])
     else:
         return 9999
 

@@ -1,0 +1,36 @@
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: spark-shuffle-role
+  labels:
+    run: group2-spark-shuffle
+rules: 
+- apiGroups:
+  - "extensions"
+  resources:
+  - "podsecuritypolicies"
+  resourceNames:
+  - "spark-shuffle-service-pod-security-policy"
+  verbs:
+  - "use"
+- apiGroups:
+  - "" # "" indicates the core API group
+  resources:
+  - "pods"
+  verbs:
+  - "get"
+  - "list"
+  - "watch"
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+    name: spark-shuffle-role-binding
+subjects:
+- kind: ServiceAccount
+  name: spark
+  namespace: default
+roleRef:
+   apiGroup: rbac.authorization.k8s.io
+   kind: ClusterRole
+   name: spark-shuffle-role

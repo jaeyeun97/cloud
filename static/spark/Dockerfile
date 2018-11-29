@@ -1,4 +1,4 @@
-FROM jaeyeun97/spark-py:latest
+FROM jaeyeun97/pyspark-static:latest
 
 COPY step2.py /opt/spark/work-dir
 

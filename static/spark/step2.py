@@ -17,6 +17,10 @@ cnx = {'host': 'group2dbinstance.cxezedslevku.eu-west-2.rds.amazonaws.com',
 
 spark = SparkSession.builder.appName("wordCount").getOrCreate()
 sc = spark.sparkContext
+
+# req = sc._jsc.requestExecutors(1)
+req = sc._jsc.sc().requestExecutors(1)
+print("!!!!!!!!!!!!!!! {}".format(req))
 sqlc = SQLContext(sc)
 
 delimiters = '[\n\t ,\.;:?!"\(\)\[\]{}\-_]+'

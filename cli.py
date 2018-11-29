@@ -70,7 +70,6 @@ delete_template = 'kops delete cluster {cluster_name} --yes'
 engine = create_engine('mysql+pymysql://group2:group2sibal@group2dbinstance.cxezedslevku.eu-west-2.rds.amazonaws.com/sw777_CloudComputingCoursework')
 SQLSession = sessionmaker(bind=engine)
 Base = declarative_base()
-log = open('log.txt', 'w+')
 
 
 class Word(Base):

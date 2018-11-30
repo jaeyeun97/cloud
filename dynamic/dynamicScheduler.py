@@ -80,7 +80,7 @@ def main():
                 print("There are no spare nodes or I already assigned a node to this pod")
                 delete(pod.metadata.name)
 
-        elif pod.status.phase == 'Failed' or pod.status.phase = 'Succeeded':
+        elif pod.status.phase == 'Failed' or pod.status.phase == 'Succeeded':
             print("Pod {}, Deleting this pod".format(pod.status.phase))
             delete(pod.metadata.name)
 

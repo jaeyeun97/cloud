@@ -5,7 +5,6 @@ metadata:
   labels:
     run: group2-custom-worker
 spec:
-  restartPolicy: Never
   schedulerName: {scheduler_name}
   containers:
   - name: wordcount-worker
@@ -27,3 +26,6 @@ spec:
       value: '0'
     - name: PYTHONHASHSEED
       value: '0'
+    resources:
+      requests:
+        cpu: "1.5"

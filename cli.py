@@ -104,7 +104,7 @@ spark_run_template = """spark-submit \
 --conf "spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem" \
 --conf "spark.hadoop.fs.s3a.access.key={key}" \
 --conf "spark.hadoop.fs.s3a.secret.key={secret}" \
-file:///opt/spark/work-dir/step2.py "{file_url}"
+file:///opt/spark/work-dir/step2.py {file_url}
 """
 
 engine = create_engine('mysql+pymysql://group2:group2sibal@group2dbinstance.cxezedslevku.eu-west-2.rds.amazonaws.com/sw777_CloudComputingCoursework')
@@ -220,7 +220,6 @@ class Shibal(object):
         self.environ['KOPS_STATE_STORE'] = "s3://{}".format(storeName)
 
     def runSpark(self, file_url, spark_image):
-        subprocess.call(delete_all_command, env=self.environ)
         self.createServiceAccount('spark/driver.sva.yaml')
         self.createClusterRoleBinding('spark/driver.crb.yaml')
         # Spark Run
@@ -257,11 +256,11 @@ class Shibal(object):
             print("File wrong Format")
 
     def runCustom(self, file_url, scheduler_name, chunk_size):
-        subprocess.call(delete_all_command, env=self.environ)
-        try:
-            kapi.delete_namespaced_service(name='group2-custom-master', namespace='default', body=delete_options)
-        except client.rest.ApiException:
-            print('Service does not exist, but all good to go')
+        subprocess.call('kubectl delete service group2-custom-master'.split(), env=self.environ)
+        # try:
+        #     kapi.delete_namespaced_service(name='group2-custom-master', namespace='default', body=delete_options)
+        # except client.rest.ApiException:
+        #     print('Service does not exist, but all good to go')
         self.createServiceAccount('custom/master.sva.yaml')
         self.createClusterRoleBinding('custom/master.crb.yaml')
         file_name = os.path.basename(file_url)
@@ -284,10 +283,11 @@ class Shibal(object):
     def runStatic(self, spark_file, custom_file, chunk_size):
         self.createServiceAccount('static/static.sva.yaml')
         self.createClusterRoleBinding('static/static.crb.yaml')
-        try:
-            kapi.delete_namespaced_pod(name='staticscheduler', namespace='kube-system', body=delete_options)
-        except client.rest.ApiException:
-            print('Scheduler does not exist, but all good to go')
+        # try:
+        #     kapi.delete_namespaced_pod(name='staticscheduler', namespace='kube-system', body=delete_options)
+        # except client.rest.ApiException:
+        #     print('Scheduler does not exist, but all good to go')
+        subprocess.call('kubectl delete pod staticscheduler --namespace=kube-system'.split(), env=self.environ)
         with open(os.path.join(os.path.dirname(__file__), 'static/staticScheduler.yaml'), 'r') as f:
             kapi.create_namespaced_pod(body=yaml.load(f), namespace='kube-system')
         self.runCustom(custom_file, 'staticscheduler', chunk_size)
@@ -366,6 +366,7 @@ class Shibal(object):
                 if len(url) < 0 or not url.startswith('s3://'):
                     print('Invalid URL')
                     continue
+                subprocess.call(delete_all_command, env=self.environ)
                 self.runSpark(url, 'jaeyeun97/wordcount:latest')
             elif prompt == 51:
                 pass
@@ -373,7 +374,7 @@ class Shibal(object):
                 getDBResults('spark')
             elif prompt == 6:
                 # Custom Run
-                url = input('URL (Local, http(s), s3 file (see smart_open)): ')
+                url = input('URL (Local, http(s), public s3 file (see smart_open)): ')
                 if len(url) < 0:
                     print('Invalid URL')
                     continue
@@ -382,6 +383,7 @@ class Shibal(object):
                     print('Chunk Size must be an Integer')
                 else:
                     chunk_size = int(chunk_size)
+                    subprocess.call(delete_all_command, env=self.environ)
                     self.runCustom(url, 'default-scheduler', chunk_size)
             elif prompt == 61:
                 pass
@@ -392,7 +394,7 @@ class Shibal(object):
                 if len(spark_url) < 0 or not spark_url.startswith('s3://'):
                     print('Invalid URL')
                     continue
-                custom_url = input('Custom URL (Local, http(s), s3 file (see smart_open)): ')
+                custom_url = input('Custom URL (Local, http(s), public s3 file (see smart_open)): ')
                 if len(custom_url) < 0:
                     print('Invalid URL')
                     continue
@@ -401,6 +403,7 @@ class Shibal(object):
                     print('Chunk Size must be an Integer')
                     continue
                 chunk_size = int(chunk_size)
+                subprocess.call(delete_all_command, env=self.environ)
                 self.runStatic(spark_url, custom_url, chunk_size)
 
 

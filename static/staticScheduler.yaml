@@ -16,3 +16,6 @@ spec:
     env:
         - name: PYTHONUNBUFFERED
           value: '0'
+    resources:
+      requests:
+        cpu: "0.8"

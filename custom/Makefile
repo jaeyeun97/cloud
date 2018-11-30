@@ -30,7 +30,4 @@ run:
 	cd ./submit && python main.py --csv ../../credentials.csv --worker-count 5 --chunk-size 32768 https://www.cl.cam.ac.uk/teaching/1819/CloudComp/files/samples/sample-f.txt
 
 runstatic:
-	cd ./submit && python main.py --csv ../../credentials.csv --worker-count 9 --input-size 200  --worker-scheduler staticscheduler --chunk-size 32768 https://www.cl.cam.ac.uk/teaching/1819/CloudComp/files/samples/sample-a.txt
-	 
-
-
+	cd ./submit && python main.py --csv ../../credentials.csv --worker-count 9 --input-size 200  --worker-scheduler staticscheduler --chunk-size 32768  https://s3.eu-west-2.amazonaws.com/cam-cloud-computing-data-source/data-200MB.txt

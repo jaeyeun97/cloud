@@ -124,7 +124,7 @@ DFcommonL = wordCountDF_letters.filter(wordCountDF_letters.rank <= common_u_lett
 DFrareL = wordCountDF_letters.filter(wordCountDF_letters.rank >= rare_letters).withColumn('category', udfCategoryRare('word'))
 DFoutL = DFpopularL.union(DFcommonL).union(DFrareL)
 
-DFoutL.select('rank', 'word', 'category', 'frequency').show()
+DFoutL.select('rank', 'letter', 'category', 'frequency').show()
 
 # Write to RDS mySQL DB
 DFoutL.write.format('jdbc').options(

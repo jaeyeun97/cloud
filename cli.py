@@ -2,10 +2,12 @@ import boto3
 import csv
 import subprocess
 import os
+import sys
 import argparse
 import re
 import yaml
 import pydoc
+from glob import glob
 from sqlalchemy import create_engine
 from kubernetes import client, config
 
@@ -97,7 +99,7 @@ spark_run_template = """spark-submit \
 --conf spark.kubernetes.driver.label.run=group2-spark-master \
 --conf spark.kubernetes.executor.label.run=group2-spark-worker \
 --conf spark.kubernetes.executor.lostCheck.maxAttempts=1 \
---conf spark.kubernetes.executor.request.cores=1.3 \
+--conf spark.kubernetes.executor.request.cores=1 \
 --conf spark.kubernetes.container.image={spark_image} \
 --conf spark.kubernetes.container.image.pullPolicy=Always \
 --conf spark.kubernetes.authenticate.driver.serviceAccountName=spark \
@@ -110,6 +112,17 @@ file:///opt/spark/work-dir/step2.py {file_url}
 """
 
 engine = create_engine('mysql+pymysql://group2:group2sibal@group2dbinstance.cxezedslevku.eu-west-2.rds.amazonaws.com/sw777_CloudComputingCoursework')
+
+
+def pager(title, content):
+    try:
+        pager = subprocess.Popen(['less', '-F', '-R', '-S', '-X', '-K'], stdin=subprocess.PIPE, stdout=sys.stdout)
+        output = "{}\n-------------------------\n{}".format(title, content)
+        pager.communicate(input=output.encode('utf-8'))
+        pager.stdin.close()
+        pager.wait()
+    except KeyboardInterrupt:
+        pass
 
 
 letterSQL = 'select rank, letter, category, frequency from letters_{}'
@@ -136,7 +149,7 @@ def getDBResults(appName):
     else:
         print('Words not in the table, did you run the app?')
     if len(content) > 0:
-        pydoc.pager(content)
+        pager("DB Results for {}".format(appName), content)
     conn.close()
 
 
@@ -189,6 +202,15 @@ class Shibal(object):
                 kapi_rbac.create_cluster_role_binding(yaml.load(f))
             except client.rest.ApiException:
                 print('ClusterRoleBinding Exists')
+
+    @staticmethod
+    def showContents(dir):
+        path = os.path.join(os.path.dirname(__file__), dir)
+        paths = glob("{}/**/*".format(path, recursive=True)) + glob("{}/*".format(path))
+        for filename in paths:
+            if os.path.isfile(filename):
+                with open(filename, 'r') as f:
+                    pager(filename, f.read())
 
     def setupS3(self):
         storeName = "{}-kops-state-store".format(self.username)
@@ -371,7 +393,7 @@ class Shibal(object):
                 subprocess.call(delete_all_command, env=self.environ)
                 self.runSpark(url, 'jaeyeun97/wordcount:latest')
             elif prompt == 51:
-                pass
+                self.showContents('spark')
             elif prompt == 52:
                 getDBResults('spark')
             elif prompt == 6:
@@ -388,7 +410,7 @@ class Shibal(object):
                     subprocess.call(delete_all_command, env=self.environ)
                     self.runCustom(url, 'default-scheduler', chunk_size)
             elif prompt == 61:
-                pass
+                self.showContents('custom')
             elif prompt == 62:
                 getDBResults('custom')
             elif prompt == 7:

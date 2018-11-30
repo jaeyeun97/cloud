@@ -429,6 +429,8 @@ class Shibal(object):
                 chunk_size = int(chunk_size)
                 subprocess.call(delete_all_command, env=self.environ)
                 self.runStatic(spark_url, custom_url, chunk_size)
+            elif prompt == 71:
+                self.showContents('static')
 
 
 if __name__ == "__main__":

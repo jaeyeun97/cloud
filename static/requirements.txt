@@ -1,4 +1,3 @@
 kubernetes
 numpy
-matplotlib
 scipy

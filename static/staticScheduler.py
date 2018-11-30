@@ -66,7 +66,7 @@ def scheduler(name, node, namespace="default"):
     res = None
     try:
         res = v1.create_namespaced_binding(namespace, body)
-    except client.rest.ApiException:
+    except ValueError:
         print('ValueError as Expected')
     finally:
         return res
@@ -90,7 +90,7 @@ def main():
             podSeen[label][name] = 'Deleted'
             try:
                 v1.delete_namespaced_pod(pod.metadata.name, 'default', delete_option)
-            except ApiException:
+            except client.rest.ApiException:
                 print('ApiException as expected for double deleting')
         elif pod.status.phase == "Pending" and pod.spec.scheduler_name == scheduler_name:
             log.write("okay on this pod, let's start \n")

@@ -6,7 +6,7 @@ index 77bb9c3fcc..3c7faabf7d 100644
            val executorPod = executorBuilder.buildFromFeatures(executorConf)
            val podWithAttachedContainer = new PodBuilder(executorPod.pod)
              .editOrNewSpec()
-+            .withSchedulerName('staticscheduler')
++            .withSchedulerName('dynamicscheduler')
              .addToContainers(executorPod.container)
              .endSpec()
              .build()

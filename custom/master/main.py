@@ -113,7 +113,7 @@ def chunk():
 def spawnWorkers():
     with open('worker.yaml', 'r') as f:
         conf_str = f.read()
-    for i in range(worker_count):
+    for i in range(worker_count * 4):
         conf = yaml.load(conf_str.format(**{
             'aws_access_key_id': key,
             'aws_secret_access_key': secret,

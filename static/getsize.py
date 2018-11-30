@@ -36,7 +36,7 @@ def spark(total_num, custom_file_size, spark_file_size):
     sopts, scov = curve_fit(getseconds, xs, spark_y)
     copts, ccov = curve_fit(getseconds, xs, custom_y)
 
-    result = minimize(getmaxsecond, [5], args=(total_num, spark_file_size, custom_file_size, sopts, copts), bounds=((2, total_num-2),))
+    result = minimize(getmaxsecond, [5], args=(total_num, spark_file_size, custom_file_size, sopts, copts), bounds=((1, total_num-1),))
     spark_num = round(result.x[0])
     custom_num = total_num - spark_num
 

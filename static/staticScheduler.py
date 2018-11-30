@@ -2,6 +2,8 @@ import time
 import random
 import json
 import getsize
+import numpy as np
+from scipy.optimize import curve_fit, minimize
 
 from kubernetes import client, config, watch
 

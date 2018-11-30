@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dynamicscheduler
+  namespace: kube-system
+  labels:
+    component: schleduer
+    tier: control-plane
+spec:
+  serviceAccountName: dynamicscheduler
+  restartPolicy: Never
+  containers:
+  - name: dynamicscheduler
+    image: jaeyeun97/dynamicscheduler:latest
+    imagePullPolicy: Always
+    env:
+        - name: PYTHONUNBUFFERED
+          value: '0'

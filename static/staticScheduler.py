@@ -89,7 +89,7 @@ def main():
             podSeen[label][name] = 'Succeeded'
         elif pod.status.phase == 'Failed':
             print("Failed Pod received, Deleting this pod")
-            podSeen[label][name] = 'Deleted'
+            podSeen[label][name] = 'Failed'
             try:
                 v1.delete_namespaced_pod(pod.metadata.name, 'default', delete_option)
             except client.rest.ApiException:
@@ -111,7 +111,7 @@ def main():
             allowed = workersAllowed(label, fileSizes)
             print("{} workers already running / {} allowed".format(alreadyRunning, allowed))
             if alreadyRunning < allowed:
-                if name not in podSeen[label]:
+                if name not in podSeen[label] or podSeen[label][name] == 'Failed':
                     print("okay I can assign a node")
                     nodesAvailable = nodes_available()
                     try:
@@ -122,9 +122,9 @@ def main():
                         log.write(json.loads(e.body)['message'])
                         log.flush()
                 elif podSeen[label][name] == 'running':
-                    print("I already assigned this pod a node before but this came again, but I shouldn't delete it")
+                    print("I already assigned this pod a node before but this came again, but I shouldn't delete it.")
                 else:
-                    print("I've seen this pod before, I marked it either deleted or succeeded but it came again pending. This shouldn't really happen.")
+                    print("This pod was already assigned or deleted, so I will do nothing.")
             else:
                 print("I shouldn't assign a node")
                 if name not in podSeen[label]:

@@ -41,7 +41,6 @@ def scheduler(name, node, namespace="default"):
         return res
 
 def main():
-    customFirst = False
     customChunks = 0
     customCount = 0
     assigned = list()
@@ -56,12 +55,12 @@ def main():
         #phase = Pending / Running / Succeeded / Failed / Unknown
         if pod.status.phase == "Pending" and pod.spec.scheduler_name == scheduler_name:
             #TODO: accept custom first
-            if not customFirst:
+            if customCount <= customCount:
                 if label == 'group2-custom-worker':
-                    customFirst = True
                     customChunks = int(pod.metadata.labels['chunkSize'])
+                    customCount += 1
                 else:
-                    print("We need to get custom worker first")
+                    print("We need to assign custom workers first")
                     delete(pod.metadata.name)
                     continue
 

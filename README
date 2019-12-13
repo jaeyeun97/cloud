@@ -1,11 +1,11 @@
 1. All the Makefiles have the instructions to build the Docker images for any updates.
   Obviously `docker` is necessary to do so.
 
-2. To run the cli, please run:
+2. To run the cli, please run following in ./group_code:
 $ pip install -r requirements.txt
 first then
 $ python cli.py
 
-3. Please make sure that you are in this directory when you call the cli.py.
+3. Please make sure that you are in ./group_code when you call the cli.py.
 4. You can specify a custom csv file using the options, see the help message from the cli itself.
-5. But to be hassle-free, just place your IAM credentials.csv in this current directory.
+5. But to be hassle-free, just place your IAM credentials.csv in ./group_code.
